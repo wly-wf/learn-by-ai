@@ -1,5 +1,6 @@
 import type { DocumentFormat, OutlineNode } from "../types";
 import { marked } from "marked";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 export function detectFormat(fileName: string): DocumentFormat {
   const ext = fileName.split(".").pop()?.toLowerCase();
@@ -66,7 +67,7 @@ export async function parseDocument(
     case "pdf": {
       try {
         const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
         const arrayBuffer = typeof content === "string"
           ? new TextEncoder().encode(content).buffer
