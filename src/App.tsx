@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { AppShell } from "./components/AppShell";
 import { TopBar } from "./components/TopBar";
 import { OutlinePanel } from "./components/OutlinePanel";
@@ -21,6 +21,10 @@ interface DocContent {
 
 function AppInner() {
   const ctx = useAppContext();
+  // Use ref to avoid recreating callbacks that depend on ctx on every render
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Document content cache keyed by document ID
   const [docContents, setDocContents] = useState<Map<string, DocContent>>(new Map());
@@ -150,15 +154,18 @@ function AppInner() {
     } catch { /* folder import requires Tauri */ }
   }, [ctx]);
 
+  // Stable callback — never changes reference, reads latest ctx from ref
   const handleAskAI = useCallback((selectedText: string) => {
     window.dispatchEvent(new CustomEvent("add-context", {
       detail: { id: generateId(), type: "text", content: selectedText, label: selectedText.length > 50 ? selectedText.slice(0, 50) + "..." : selectedText },
     }));
   }, []);
 
+  // Stable callback — use ctxRef to avoid new reference every render
   const handleScrollChange = useCallback((pct: number) => {
-    if (ctx.activeDocumentId) ctx.updateScrollPosition(ctx.activeDocumentId, pct);
-  }, [ctx]);
+    const c = ctxRef.current;
+    if (c.activeDocumentId) c.updateScrollPosition(c.activeDocumentId, pct);
+  }, []);
 
   return (
     <>

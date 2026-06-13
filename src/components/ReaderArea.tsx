@@ -19,7 +19,7 @@ interface ReaderAreaProps {
 
 const MAX_CONTEXT_LENGTH = 5000;
 
-export function ReaderArea({
+export const ReaderArea = React.memo(function ReaderArea({
   document, htmlContent, onAskAI, onTakeNote, onExplain, onTranslate, onSummarize, onScrollPositionChange, onActiveHeadingChange,
 }: ReaderAreaProps) {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -151,4 +151,4 @@ export function ReaderArea({
       <ContextMenu visible={contextMenu.visible} position={contextMenu.position} onClose={closeContextMenu} onAskAI={() => onAskAI(contextMenu.selectedText)} onTranslate={() => onTranslate(contextMenu.selectedText)} onSummarize={() => onSummarize(contextMenu.selectedText)} />
     </div>
   );
-}
+});
