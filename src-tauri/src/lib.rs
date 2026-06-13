@@ -17,6 +17,7 @@ pub fn run() {
             file_handler::read_file,
             file_handler::read_text_file,
             file_handler::list_folder_files,
+            api_proxy::proxy_ai_request,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
