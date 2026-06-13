@@ -34,6 +34,9 @@ export class StorageService {
             db.createObjectStore("settings", { keyPath: "id" });
           }
         },
+      }).catch((err) => {
+        this.dbPromise = null;
+        throw new Error(`Failed to open database "${this.dbName}": ${err.message}`);
       });
     }
     return this.dbPromise;
@@ -72,12 +75,18 @@ export class StorageService {
   async getConversationsByDocument(
     documentId: string,
   ): Promise<Conversation[]> {
-    const db = await this.getDB();
-    const index = db
-      .transaction("conversations")
-      .store.index("documentId");
-    const convs = await index.getAll(documentId);
-    return convs.sort((a, b) => b.updatedAt - a.updatedAt);
+    try {
+      const db = await this.getDB();
+      const tx = db.transaction("conversations");
+      const index = tx.store.index("documentId");
+      const convs = await index.getAll(documentId);
+      await tx.done;
+      return convs.sort((a, b) => b.updatedAt - a.updatedAt);
+    } catch (err) {
+      throw new Error(
+        `Failed to get conversations for document "${documentId}": ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   async deleteConversation(id: string): Promise<void> {

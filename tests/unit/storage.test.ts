@@ -51,6 +51,48 @@ describe("StorageService", () => {
       const docs = await storage.getAllDocuments();
       expect(docs).toEqual([]);
     });
+
+    it("should retrieve a single document by ID", async () => {
+      const doc: DocumentMeta = {
+        id: "doc-1",
+        fileName: "test.pdf",
+        filePath: "/path/to/test.pdf",
+        format: "pdf",
+        size: 1024,
+        openedAt: Date.now(),
+        lastScrollPosition: 0,
+      };
+
+      await storage.saveDocument(doc);
+      const retrieved = await storage.getDocument("doc-1");
+      expect(retrieved).toBeDefined();
+      expect(retrieved!.fileName).toBe("test.pdf");
+    });
+
+    it("should return undefined for missing doc", async () => {
+      const retrieved = await storage.getDocument("no-such-doc");
+      expect(retrieved).toBeUndefined();
+    });
+
+    it("should delete a document and verify it is gone", async () => {
+      const doc: DocumentMeta = {
+        id: "doc-1",
+        fileName: "test.pdf",
+        filePath: "/path/to/test.pdf",
+        format: "pdf",
+        size: 1024,
+        openedAt: Date.now(),
+        lastScrollPosition: 0,
+      };
+
+      await storage.saveDocument(doc);
+      await storage.deleteDocument("doc-1");
+      const docs = await storage.getAllDocuments();
+      expect(docs).toHaveLength(0);
+
+      const retrieved = await storage.getDocument("doc-1");
+      expect(retrieved).toBeUndefined();
+    });
   });
 
   describe("Conversation operations", () => {
@@ -73,6 +115,22 @@ describe("StorageService", () => {
     it("should return empty for unknown document", async () => {
       const convs = await storage.getConversationsByDocument("no-such-doc");
       expect(convs).toEqual([]);
+    });
+
+    it("should delete a conversation and verify it is gone", async () => {
+      const conv: Conversation = {
+        id: "conv-1",
+        documentId: "doc-1",
+        title: "Test Chat",
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      await storage.saveConversation(conv);
+      await storage.deleteConversation("conv-1");
+      const convs = await storage.getConversationsByDocument("doc-1");
+      expect(convs).toHaveLength(0);
     });
   });
 
