@@ -7,36 +7,79 @@ import { AIPanel } from "./components/AIPanel";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { PdfViewer } from "./components/PdfViewer";
 import { parseDocument, extractOutline } from "./services/documentParser";
 import type { OutlineNode } from "./types";
 import { generateId } from "./lib/utils";
 
+interface DocContent {
+  html: string;
+  outline: OutlineNode[];
+  format: string;
+  pdfBuffer?: ArrayBuffer;
+}
+
 function AppInner() {
   const ctx = useAppContext();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [htmlContent, setHtmlContent] = useState("");
-  const [outline, setOutline] = useState<OutlineNode[]>([]);
+  // Document content cache keyed by document ID
+  const [docContents, setDocContents] = useState<Map<string, DocContent>>(new Map());
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
+
+  // Get active document's content from cache
+  const activeContent = ctx.activeDocumentId
+    ? docContents.get(ctx.activeDocumentId)
+    : undefined;
 
   const loadDocumentContent = useCallback(async (_docId: string, content: ArrayBuffer, format: string) => {
     try {
       const result = await parseDocument(content, format as any);
-      setHtmlContent(result.html);
       const newOutline = extractOutline(
         format === "md" ? result.rawText : result.html,
         format as any,
       );
-      setOutline(newOutline);
+
+      // Store in cache
+      const docContent: DocContent = {
+        html: result.html,
+        outline: newOutline,
+        format,
+        pdfBuffer: format === "pdf" ? content : undefined,
+      };
+
+      setDocContents((prev) => {
+        const next = new Map(prev);
+        next.set(_docId, docContent);
+        return next;
+      });
     } catch (err) {
-      setHtmlContent(`<div class="error p-4 text-red-500">文档解析失败: ${err instanceof Error ? err.message : "未知错误"}</div>`);
-      setOutline([]);
+      const errorHtml = `<div class="error p-4 text-red-500">文档解析失败: ${err instanceof Error ? err.message : "未知错误"}</div>`;
+      setDocContents((prev) => {
+        const next = new Map(prev);
+        next.set(_docId, { html: errorHtml, outline: [], format });
+        return next;
+      });
     }
   }, []);
 
-  // Clear content when switching between documents
+  // Clean up closed documents from cache
   useEffect(() => {
-    setHtmlContent("");
-    setOutline([]);
+    setDocContents((prev) => {
+      const docIds = new Set(ctx.documents.map((d) => d.id));
+      const next = new Map(prev);
+      let changed = false;
+      for (const key of next.keys()) {
+        if (!docIds.has(key)) {
+          next.delete(key);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [ctx.documents]);
+
+  // Reset heading when switching documents
+  useEffect(() => {
     setActiveHeadingId(null);
   }, [ctx.activeDocumentId]);
 
@@ -131,7 +174,7 @@ function AppInner() {
           />
         }
         outlinePanel={
-          <OutlinePanel outline={outline} activeHeadingId={activeHeadingId}
+          <OutlinePanel outline={activeContent?.outline || []} activeHeadingId={activeHeadingId}
             onNavigate={(anchorId) => {
               const el = document.querySelector(`[id="${anchorId}"]`) || document.getElementById(anchorId);
               if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -140,15 +183,21 @@ function AppInner() {
           />
         }
         readerArea={
-          <ReaderArea document={ctx.activeDocument} htmlContent={htmlContent}
-            onAskAI={handleAskAI}
-            onTakeNote={(text) => handleAskAI(text)}
-            onExplain={(text) => handleAskAI(text)}
-            onTranslate={(text) => handleAskAI(text)}
-            onSummarize={(text) => handleAskAI(text)}
-            onScrollPositionChange={handleScrollChange}
-            onActiveHeadingChange={setActiveHeadingId}
-          />
+          activeContent?.format === "pdf" && activeContent.pdfBuffer ? (
+            <div className="h-full overflow-y-auto px-4 py-4">
+              <PdfViewer data={activeContent.pdfBuffer} />
+            </div>
+          ) : (
+            <ReaderArea document={ctx.activeDocument} htmlContent={activeContent?.html || ""}
+              onAskAI={handleAskAI}
+              onTakeNote={(text) => handleAskAI(text)}
+              onExplain={(text) => handleAskAI(text)}
+              onTranslate={(text) => handleAskAI(text)}
+              onSummarize={(text) => handleAskAI(text)}
+              onScrollPositionChange={handleScrollChange}
+              onActiveHeadingChange={setActiveHeadingId}
+            />
+          )
         }
         aiPanel={
           <AIPanel conversation={ctx.conversation} hasApiKey={ctx.hasApiKey}
