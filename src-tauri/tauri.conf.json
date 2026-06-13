@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/nicklason-main/tauri/refs/heads/v2/crates/tauri-config-schema/schema.json",
   "productName": "LearnByAI",
   "version": "0.1.0",
   "identifier": "com.learnbyai.app",
