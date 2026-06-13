@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AppShell } from "./components/AppShell";
 import { TopBar } from "./components/TopBar";
 import { OutlinePanel } from "./components/OutlinePanel";
@@ -33,6 +33,13 @@ function AppInner() {
     }
   }, []);
 
+  // Clear content when switching between documents
+  useEffect(() => {
+    setHtmlContent("");
+    setOutline([]);
+    setActiveHeadingId(null);
+  }, [ctx.activeDocumentId]);
+
   const handleOpenFile = useCallback(async () => {
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
@@ -47,7 +54,17 @@ function AppInner() {
           const content = await invoke<number[]>("read_file", { path: selected });
           const buffer = new Uint8Array(content).buffer;
           await loadDocumentContent(doc.id, buffer, doc.format);
-        } catch { /* Tauri unavailable */ }
+        } catch (err) {
+          // Tauri read_file failed — try browser fallback
+          console.warn("Tauri read_file failed, trying browser fallback:", err);
+          try {
+            const response = await fetch(selected);
+            const buffer = await response.arrayBuffer();
+            await loadDocumentContent(doc.id, buffer, doc.format);
+          } catch (fetchErr) {
+            console.error("Browser fallback also failed:", fetchErr);
+          }
+        }
       }
     } catch {
       // Fallback: use browser file input

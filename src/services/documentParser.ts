@@ -63,8 +63,8 @@ export async function parseDocument(
 
     case "pdf": {
       try {
-        const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = ""; // Disable worker for now
+        const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+        // Legacy build includes worker inline — no GlobalWorkerOptions configuration needed
 
         const arrayBuffer = typeof content === "string"
           ? new TextEncoder().encode(content).buffer
