@@ -36,6 +36,8 @@ function AppInner() {
   const loadDocumentContent = useCallback(async (_docId: string, content: ArrayBuffer, format: string) => {
     console.log("[App] loadDocumentContent called:", { docId: _docId, format, contentBytes: content.byteLength });
     try {
+      // Clone buffer for safe storage — parseDocument/pdf.js may transfer the original
+      const contentClone = content.slice(0);
       const result = await parseDocument(content, format as any);
       console.log("[App] parseDocument done, rawText len:", result.rawText?.length, "html len:", result.html?.length);
       const sourceForOutline = format === "md" ? result.rawText : result.html;
@@ -48,7 +50,7 @@ function AppInner() {
         html: result.html,
         outline: newOutline,
         format,
-        pdfBuffer: format === "pdf" ? content : undefined,
+        pdfBuffer: format === "pdf" ? contentClone : undefined,
       };
 
       setDocContents((prev) => {
