@@ -10,6 +10,15 @@ export function PdfViewer({ data }: PdfViewerProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Clone buffer immediately so pdf.js transfer doesn't detach the prop.
+    // React StrictMode double-invokes effects — each needs its own copy.
+    let safeData: ArrayBuffer;
+    try {
+      safeData = data.slice(0);
+    } catch {
+      return; // Buffer already detached, nothing we can do
+    }
+
     let cancelled = false;
 
     async function renderPdf() {
@@ -19,7 +28,7 @@ export function PdfViewer({ data }: PdfViewerProps) {
         pdfjsLib.GlobalWorkerOptions.workerSrc =
           "https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
 
-        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(data) });
+        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(safeData) });
         const pdf = await loadingTask.promise;
 
         const pageRefs: Array<{ pageNum: number; canvasRef: React.RefObject<HTMLCanvasElement | null> }> = [];
@@ -31,13 +40,11 @@ export function PdfViewer({ data }: PdfViewerProps) {
         setPages(pageRefs);
         setLoading(false);
 
-        // Render pages after state update (in next tick)
         for (let i = 1; i <= pdf.numPages; i++) {
           if (cancelled) return;
           const page = await pdf.getPage(i);
           const viewport = page.getViewport({ scale: 1.5 });
 
-          // Wait for canvas ref to be available
           await new Promise((resolve) => setTimeout(resolve, 50));
           const canvas = pageRefs[i - 1].canvasRef.current;
           if (!canvas) continue;
@@ -57,9 +64,7 @@ export function PdfViewer({ data }: PdfViewerProps) {
     }
 
     renderPdf();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [data]);
 
   if (error) {
