@@ -25,20 +25,22 @@ export async function parseDocument(
 ): Promise<{ html: string; rawText: string }> {
   switch (format) {
     case "txt": {
-      const text = typeof content === "string"
+      const text = (typeof content === "string"
         ? content
-        : new TextDecoder().decode(content);
+        : new TextDecoder().decode(content))
+        .replace(/^﻿/, ""); // Remove BOM
       const html = text
-        .split("\n")
-        .map((line) => `<p>${escapeHtml(line) || "&nbsp;"}</p>`)
+        .split(/\r?\n/)
+        .map((line) => `<p>${escapeHtml(line.replace(/\r$/, "")) || "&nbsp;"}</p>`)
         .join("\n");
       return { html, rawText: text };
     }
 
     case "md": {
-      const text = typeof content === "string"
+      const text = (typeof content === "string"
         ? content
-        : new TextDecoder().decode(content);
+        : new TextDecoder().decode(content))
+        .replace(/^﻿/, ""); // Remove BOM
       let html = await marked.parse(text);
       html = addHeadingIds(html);
       return { html, rawText: text };
@@ -119,7 +121,8 @@ export function extractOutline(
 }
 
 function extractMarkdownOutline(markdown: string): OutlineNode[] {
-  const lines = markdown.split("\n");
+  // Handle Windows \r\n, Unix \n, and legacy Mac \r line endings
+  const lines = markdown.split(/\r?\n/).map(l => l.replace(/\r$/, ""));
   const headingRegex = /^(#{1,6})\s+(.+)$/;
   const root: OutlineNode[] = [];
   const stack: OutlineNode[] = [];
