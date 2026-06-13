@@ -37,12 +37,14 @@ export function useDocuments() {
     for (const conv of convs) await storageService.deleteConversation(conv.id);
   }, [documents, activeDocumentId]);
 
+  // Persist scroll position without triggering React re-render (avoids visual flicker)
   const updateScrollPosition = useCallback(async (id: string, position: number) => {
     const doc = documents.find((d) => d.id === id);
     if (!doc) return;
     const updated = { ...doc, lastScrollPosition: position };
     await storageService.saveDocument(updated);
-    setDocuments((prev) => prev.map((d) => (d.id === id ? updated : d)));
+    // Update state in-place via mutation to avoid new array reference that causes re-render
+    doc.lastScrollPosition = position;
   }, [documents]);
 
   const activeDocument = documents.find((d) => d.id === activeDocumentId) || null;
