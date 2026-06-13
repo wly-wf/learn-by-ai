@@ -96,15 +96,28 @@ function extractMarkdownOutline(markdown: string): OutlineNode[] {
   const root: OutlineNode[] = [];
   const stack: OutlineNode[] = [];
   let nodeId = 0;
+  let inCodeBlock = false;
+
+  const slugCounts = new Map<string, number>();
 
   for (const line of lines) {
+    // Toggle code block state on ``` fences
+    if (line.trimStart().startsWith("```")) {
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+    if (inCodeBlock) continue;
+
     const match = line.match(headingRegex);
     if (!match) continue;
 
     const level = match[1].length;
     const title = match[2].trim();
     const id = `outline-${nodeId++}`;
-    const anchorId = `heading-${slugify(title)}`;
+    const slug = slugify(title);
+    const count = slugCounts.get(slug) ?? 0;
+    slugCounts.set(slug, count + 1);
+    const anchorId = count === 0 ? `heading-${slug}` : `heading-${slug}-${count + 1}`;
 
     const node: OutlineNode = { id, title, level, children: [], anchorId };
 
@@ -129,13 +142,17 @@ function extractHtmlOutline(html: string): OutlineNode[] {
   const root: OutlineNode[] = [];
   const stack: OutlineNode[] = [];
   let nodeId = 0;
+  const slugCounts = new Map<string, number>();
 
   let match: RegExpExecArray | null;
   while ((match = headingRegex.exec(html)) !== null) {
     const level = parseInt(match[1]);
     const title = match[2].replace(/<[^>]*>/g, "").trim();
     const id = `outline-${nodeId++}`;
-    const anchorId = `heading-${slugify(title)}`;
+    const slug = slugify(title);
+    const count = slugCounts.get(slug) ?? 0;
+    slugCounts.set(slug, count + 1);
+    const anchorId = count === 0 ? `heading-${slug}` : `heading-${slug}-${count + 1}`;
 
     const node: OutlineNode = { id, title, level, children: [], anchorId };
 
@@ -158,7 +175,7 @@ function extractHtmlOutline(html: string): OutlineNode[] {
 function slugify(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[^\w一-鿿]+/g, "-")
+    .replace(/[^\w㐀-䶿一-鿿豈-﫿]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 

@@ -60,6 +60,32 @@ More content
     const outline = extractOutline(text, "md");
     expect(outline).toEqual([]);
   });
+
+  it("should skip headings inside fenced code blocks", () => {
+    const markdown = `# Real heading
+\`\`\`
+# Not a heading
+## Also not a heading
+\`\`\`
+## Real subheading`;
+    const outline = extractOutline(markdown, "md");
+    expect(outline).toHaveLength(1);
+    expect(outline[0].title).toBe("Real heading");
+    expect(outline[0].children).toHaveLength(1);
+    expect(outline[0].children[0].title).toBe("Real subheading");
+  });
+
+  it("should produce unique anchorIds for duplicate heading titles", () => {
+    const markdown = `# Overview
+## Getting Started
+## Getting Started
+### Getting Started`;
+    const outline = extractOutline(markdown, "md");
+    expect(outline[0].anchorId).toBe("heading-overview");
+    expect(outline[0].children[0].anchorId).toBe("heading-getting-started");
+    expect(outline[0].children[1].anchorId).toBe("heading-getting-started-2");
+    expect(outline[0].children[1].children[0].anchorId).toBe("heading-getting-started-3");
+  });
 });
 
 describe("extractOutline from HTML", () => {
