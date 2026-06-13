@@ -1,6 +1,5 @@
 import type { DocumentFormat, OutlineNode } from "../types";
 import { marked } from "marked";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 export function detectFormat(fileName: string): DocumentFormat {
   const ext = fileName.split(".").pop()?.toLowerCase();
@@ -67,7 +66,9 @@ export async function parseDocument(
     case "pdf": {
       try {
         const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+        // Use CDN worker to bypass Vite's module resolution conflict with pdf.js dynamic import()
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
 
         const arrayBuffer = typeof content === "string"
           ? new TextEncoder().encode(content).buffer

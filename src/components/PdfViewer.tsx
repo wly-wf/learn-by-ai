@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from "react";
-// Vite ?url import: resolves to the correct hashed URL at build time
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 interface PdfViewerProps {
   data: ArrayBuffer;
@@ -18,7 +16,8 @@ export function PdfViewer({ data }: PdfViewerProps) {
       try {
         setLoading(true);
         const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
 
         const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(data) });
         const pdf = await loadingTask.promise;
