@@ -23,7 +23,8 @@ export function ReaderArea({
   document, htmlContent, onAskAI, onTakeNote, onExplain, onTranslate, onSummarize, onScrollPositionChange, onActiveHeadingChange,
 }: ReaderAreaProps) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const selectionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectionTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const scrollTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [toolbar, setToolbar] = useState<{ visible: boolean; position: { x: number; y: number }; selectedText: string }>({ visible: false, position: { x: 0, y: 0 }, selectedText: "" });
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; position: { x: number; y: number }; selectedText: string }>({ visible: false, position: { x: 0, y: 0 }, selectedText: "" });
 
@@ -64,14 +65,36 @@ export function ReaderArea({
   const closeToolbar = useCallback(() => setToolbar((prev) => ({ ...prev, visible: false })), []);
   const closeContextMenu = useCallback(() => setContextMenu((prev) => ({ ...prev, visible: false })), []);
 
+  const handleContainerClick = useCallback((_e: React.MouseEvent) => {
+    // Only close toolbar if clicking outside any text selection
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) {
+      closeToolbar();
+    }
+  }, [closeToolbar]);
+
   const handleScroll = useCallback(() => {
     if (!contentRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
+    const { scrollHeight, clientHeight } = contentRef.current;
     if (scrollHeight <= clientHeight) return;
-    onScrollPositionChange(Math.round((scrollTop / (scrollHeight - clientHeight)) * 100));
+
+    // Throttle scroll position updates to every 500ms to prevent re-render jitter
+    if (scrollTimerRef.current) return;
+    scrollTimerRef.current = setTimeout(() => {
+      scrollTimerRef.current = null;
+      if (!contentRef.current) return;
+      const { scrollTop: st, scrollHeight: sh, clientHeight: ch } = contentRef.current;
+      if (sh <= ch) return;
+      onScrollPositionChange(Math.round((st / (sh - ch)) * 100));
+    }, 500);
   }, [onScrollPositionChange]);
 
-  useEffect(() => { return () => { if (selectionTimerRef.current) clearTimeout(selectionTimerRef.current); }; }, []);
+  useEffect(() => {
+    return () => {
+      if (selectionTimerRef.current) clearTimeout(selectionTimerRef.current);
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
+  }, []);
 
   // IntersectionObserver for heading tracking (bidirectional outline sync)
   useEffect(() => {
@@ -120,8 +143,8 @@ export function ReaderArea({
   }
 
   return (
-    <div className="relative h-full overflow-hidden">
-      <div ref={contentRef} className="h-full overflow-y-auto px-8 py-6" onMouseUp={handleMouseUp} onContextMenu={handleContextMenu} onClick={closeToolbar} onScroll={handleScroll}>
+    <div className="relative h-full overflow-hidden" onClick={handleContainerClick}>
+      <div ref={contentRef} className="h-full overflow-y-auto px-8 py-6" onMouseUp={handleMouseUp} onContextMenu={handleContextMenu} onScroll={handleScroll}>
         <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }} />
       </div>
       <FloatingToolbar visible={toolbar.visible} position={toolbar.position} onAskAI={() => { onAskAI(toolbar.selectedText); closeToolbar(); }} onTakeNote={() => { onTakeNote(toolbar.selectedText); closeToolbar(); }} onExplain={() => { onExplain(toolbar.selectedText); closeToolbar(); }} />
