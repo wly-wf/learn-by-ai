@@ -31,13 +31,17 @@ function AppInner() {
     ? docContents.get(ctx.activeDocumentId)
     : undefined;
 
+  console.log("[App] activeDocumentId:", ctx.activeDocumentId, "docCount:", ctx.documents.length, "cachedDocs:", [...docContents.keys()], "hasActiveContent:", !!activeContent, "outlineLen:", activeContent?.outline?.length);
+
   const loadDocumentContent = useCallback(async (_docId: string, content: ArrayBuffer, format: string) => {
+    console.log("[App] loadDocumentContent called:", { docId: _docId, format, contentBytes: content.byteLength });
     try {
       const result = await parseDocument(content, format as any);
-      const newOutline = extractOutline(
-        format === "md" ? result.rawText : result.html,
-        format as any,
-      );
+      console.log("[App] parseDocument done, rawText len:", result.rawText?.length, "html len:", result.html?.length);
+      const sourceForOutline = format === "md" ? result.rawText : result.html;
+      console.log("[App] extractOutline source len:", sourceForOutline?.length, "format:", format);
+      const newOutline = extractOutline(sourceForOutline, format as any);
+      console.log("[App] extractOutline result:", newOutline?.length, "headings:", JSON.stringify(newOutline.slice(0, 3).map(n => n.title)));
 
       // Store in cache
       const docContent: DocContent = {
@@ -91,21 +95,26 @@ function AppInner() {
         filters: [{ name: "文档", extensions: ["txt", "pdf", "docx", "doc", "md", "markdown"] }],
       });
       if (selected && typeof selected === "string") {
+        console.log("[App] Tauri file selected:", selected);
         const doc = await ctx.openDocumentFile(selected);
+        console.log("[App] doc created:", { id: doc.id, format: doc.format });
         try {
           const { invoke } = await import("@tauri-apps/api/core");
-          // Use the right command based on file type
           if (doc.format === "txt" || doc.format === "md") {
+            console.log("[App] using read_text_file for", selected);
             const text = await invoke<string>("read_text_file", { path: selected });
+            console.log("[App] read_text_file returned", text?.length, "chars, first 100:", text?.slice(0, 100));
             const buffer = new TextEncoder().encode(text).buffer;
             await loadDocumentContent(doc.id, buffer, doc.format);
           } else {
+            console.log("[App] using read_file for", selected);
             const content = await invoke<number[]>("read_file", { path: selected });
+            console.log("[App] read_file returned", content?.length, "bytes");
             const buffer = new Uint8Array(content).buffer;
             await loadDocumentContent(doc.id, buffer, doc.format);
           }
         } catch (err) {
-          console.warn("Tauri file read failed:", err);
+          console.warn("[App] Tauri file read failed:", err);
           // Fallback: use browser file input
           const input = document.createElement("input");
           input.type = "file";
