@@ -21,7 +21,13 @@ export function ChatInput({ contexts, onAddContext, onRemoveContext, onSend, dis
   const handleSend = useCallback(() => {
     const trimmed = text.trim();
     if (!trimmed && contexts.length === 0) return;
-    onSend(trimmed || "请分析这张图片", contexts);
+
+    // Smart default: only use "请分析这张图片" for image-only contexts
+    const hasImages = contexts.some(c => c.type === "image");
+    const hasText = contexts.some(c => c.type === "text");
+    const defaultText = (hasImages && !hasText) ? "请分析这张图片" : (hasText ? "请解释这段文字" : "");
+
+    onSend(trimmed || defaultText, contexts);
     setText("");
   }, [text, contexts, onSend]);
 

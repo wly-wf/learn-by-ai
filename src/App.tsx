@@ -51,19 +51,31 @@ function AppInner() {
         const doc = await ctx.openDocumentFile(selected);
         try {
           const { invoke } = await import("@tauri-apps/api/core");
-          const content = await invoke<number[]>("read_file", { path: selected });
-          const buffer = new Uint8Array(content).buffer;
-          await loadDocumentContent(doc.id, buffer, doc.format);
-        } catch (err) {
-          // Tauri read_file failed — try browser fallback
-          console.warn("Tauri read_file failed, trying browser fallback:", err);
-          try {
-            const response = await fetch(selected);
-            const buffer = await response.arrayBuffer();
+          // Use the right command based on file type
+          if (doc.format === "txt" || doc.format === "md") {
+            const text = await invoke<string>("read_text_file", { path: selected });
+            const buffer = new TextEncoder().encode(text).buffer;
             await loadDocumentContent(doc.id, buffer, doc.format);
-          } catch (fetchErr) {
-            console.error("Browser fallback also failed:", fetchErr);
+          } else {
+            const content = await invoke<number[]>("read_file", { path: selected });
+            const buffer = new Uint8Array(content).buffer;
+            await loadDocumentContent(doc.id, buffer, doc.format);
           }
+        } catch (err) {
+          console.warn("Tauri file read failed:", err);
+          // Fallback: use browser file input
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = ".txt,.pdf,.docx,.doc,.md,.markdown";
+          input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+              const doc2 = await ctx.openDocumentFile(file.name);
+              const buffer = await file.arrayBuffer();
+              await loadDocumentContent(doc2.id, buffer, doc2.format);
+            }
+          };
+          input.click();
         }
       }
     } catch {

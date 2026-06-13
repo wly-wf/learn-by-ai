@@ -63,14 +63,15 @@ export async function parseDocument(
 
     case "pdf": {
       try {
-        const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-        // Legacy build includes worker inline — no GlobalWorkerOptions configuration needed
+        const pdfjsLib = await import("pdfjs-dist");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
         const arrayBuffer = typeof content === "string"
           ? new TextEncoder().encode(content).buffer
           : content;
 
-        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
+        const pdf = await loadingTask.promise;
         let fullText = "";
         let htmlParts: string[] = [];
 
