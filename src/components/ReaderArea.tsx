@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import type { DocumentMeta } from "../types";
 import { FloatingToolbar } from "./FloatingToolbar";
 import { ContextMenu } from "./ContextMenu";
@@ -84,7 +85,7 @@ export function ReaderArea({
   return (
     <div className="relative h-full overflow-hidden">
       <div ref={contentRef} className="h-full overflow-y-auto px-8 py-6" onMouseUp={handleMouseUp} onContextMenu={handleContextMenu} onClick={closeToolbar} onScroll={handleScroll}>
-        <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+        <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }} />
       </div>
       <FloatingToolbar visible={toolbar.visible} position={toolbar.position} onAskAI={() => { onAskAI(toolbar.selectedText); closeToolbar(); }} onTakeNote={() => { onTakeNote(toolbar.selectedText); closeToolbar(); }} onExplain={() => { onExplain(toolbar.selectedText); closeToolbar(); }} />
       <ContextMenu visible={contextMenu.visible} position={contextMenu.position} onClose={closeContextMenu} onAskAI={() => onAskAI(contextMenu.selectedText)} onTranslate={() => onTranslate(contextMenu.selectedText)} onSummarize={() => onSummarize(contextMenu.selectedText)} />

@@ -60,8 +60,33 @@ export async function parseDocument(
     }
 
     case "pdf": {
-      const html = `<div id="pdf-container" class="pdf-viewer"></div>`;
-      return { html, rawText: "" };
+      try {
+        const pdfjsLib = await import("pdfjs-dist");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = ""; // Disable worker for now
+
+        const arrayBuffer = typeof content === "string"
+          ? new TextEncoder().encode(content).buffer
+          : content;
+
+        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+        let fullText = "";
+        let htmlParts: string[] = [];
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(" ");
+          fullText += pageText + "\n\n";
+          htmlParts.push(`<div class="pdf-page" data-page="${i}"><div class="pdf-page-number text-xs text-gray-400 mb-2">第 ${i} 页</div><p>${pageText || "&nbsp;"}</p></div>`);
+        }
+
+        const html = `<div class="pdf-viewer">${htmlParts.join("\n")}</div>`;
+        return { html, rawText: fullText };
+      } catch (err) {
+        throw new Error(`PDF 解析失败: ${err instanceof Error ? err.message : "未知错误"}`);
+      }
     }
 
     default:

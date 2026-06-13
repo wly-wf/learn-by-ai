@@ -6,6 +6,7 @@ import { ReaderArea } from "./components/ReaderArea";
 import { AIPanel } from "./components/AIPanel";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { parseDocument, extractOutline } from "./services/documentParser";
 import type { OutlineNode } from "./types";
 import { generateId } from "./lib/utils";
@@ -134,7 +135,9 @@ function AppInner() {
 export default function App() {
   return (
     <AppProvider>
-      <AppInner />
+      <ErrorBoundary>
+        <AppInner />
+      </ErrorBoundary>
     </AppProvider>
   );
 }

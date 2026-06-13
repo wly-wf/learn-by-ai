@@ -61,10 +61,24 @@ export class AIClient {
 
   private async sendRequest(messages: ChatCompletionMessage[]): Promise<string> {
     const url = `${this.provider.baseUrl.replace(/\/$/, "")}/chat/completions`;
+    const body = { model: this.provider.model, messages, max_tokens: 4096, temperature: 0.7 };
+
+    // Try Tauri proxy first (protects API key)
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const data = await invoke<{ choices: Array<{ message: { role: string; content: string } }> }>(
+        "proxy_ai_request",
+        { url, apiKey: this.provider.apiKey, body }
+      );
+      return data.choices[0]?.message?.content || "";
+    } catch {
+      // Fallback: direct fetch (development/non-Tauri environments)
+    }
+
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.provider.apiKey}` },
-      body: JSON.stringify({ model: this.provider.model, messages, max_tokens: 4096, temperature: 0.7 }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
