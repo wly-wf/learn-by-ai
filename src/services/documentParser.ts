@@ -39,7 +39,8 @@ export async function parseDocument(
       const text = typeof content === "string"
         ? content
         : new TextDecoder().decode(content);
-      const html = await marked.parse(text);
+      let html = await marked.parse(text);
+      html = addHeadingIds(html);
       return { html, rawText: text };
     }
 
@@ -56,7 +57,8 @@ export async function parseDocument(
         ],
       });
       const rawText = result.value.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
-      return { html: result.value, rawText };
+      const html = addHeadingIds(result.value);
+      return { html, rawText };
     }
 
     case "pdf": {
@@ -82,7 +84,7 @@ export async function parseDocument(
           htmlParts.push(`<div class="pdf-page" data-page="${i}"><div class="pdf-page-number text-xs text-gray-400 mb-2">第 ${i} 页</div><p>${pageText || "&nbsp;"}</p></div>`);
         }
 
-        const html = `<div class="pdf-viewer">${htmlParts.join("\n")}</div>`;
+        const html = addHeadingIds(`<div class="pdf-viewer">${htmlParts.join("\n")}</div>`);
         return { html, rawText: fullText };
       } catch (err) {
         throw new Error(`PDF 解析失败: ${err instanceof Error ? err.message : "未知错误"}`);
@@ -202,6 +204,23 @@ function slugify(text: string): string {
     .toLowerCase()
     .replace(/[^\w㐀-䶿一-鿿豈-﫿]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function addHeadingIds(html: string): string {
+  const slugCounts = new Map<string, number>();
+
+  return html.replace(/<(h[1-6])([^>]*)>(.+?)<\/\1>/gi, (match, tag, attrs, content) => {
+    // Don't override existing IDs
+    if (/\sid\s*=\s*["']/i.test(attrs)) return match;
+
+    const text = content.replace(/<[^>]*>/g, "").trim();
+    const slug = slugify(text);
+    const count = slugCounts.get(slug) ?? 0;
+    slugCounts.set(slug, count + 1);
+    const id = count === 0 ? `heading-${slug}` : `heading-${slug}-${count + 1}`;
+
+    return `<${tag}${attrs} id="${id}">${content}</${tag}>`;
+  });
 }
 
 export function truncateText(text: string, maxLength: number): string {

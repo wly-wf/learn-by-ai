@@ -118,6 +118,7 @@ function AppInner() {
             onTranslate={(text) => handleAskAI(text)}
             onSummarize={(text) => handleAskAI(text)}
             onScrollPositionChange={handleScrollChange}
+            onActiveHeadingChange={setActiveHeadingId}
           />
         }
         aiPanel={

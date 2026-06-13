@@ -14,12 +14,13 @@ interface ReaderAreaProps {
   onTranslate: (selectedText: string) => void;
   onSummarize: (selectedText: string) => void;
   onScrollPositionChange: (scrollPct: number) => void;
+  onActiveHeadingChange?: (headingId: string | null) => void;
 }
 
 const MAX_CONTEXT_LENGTH = 5000;
 
 export function ReaderArea({
-  document, htmlContent, onAskAI, onTakeNote, onExplain, onTranslate, onSummarize, onScrollPositionChange,
+  document, htmlContent, onAskAI, onTakeNote, onExplain, onTranslate, onSummarize, onScrollPositionChange, onActiveHeadingChange,
 }: ReaderAreaProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const selectionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,6 +72,42 @@ export function ReaderArea({
   }, [onScrollPositionChange]);
 
   useEffect(() => { return () => { if (selectionTimerRef.current) clearTimeout(selectionTimerRef.current); }; }, []);
+
+  // IntersectionObserver for heading tracking (bidirectional outline sync)
+  useEffect(() => {
+    if (!document || !htmlContent || !onActiveHeadingChange) return;
+
+    const container = contentRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Find the topmost visible heading
+        const visibleHeadings = entries
+          .filter((e) => e.isIntersecting)
+          .map((e) => ({
+            id: (e.target as HTMLElement).id,
+            top: e.boundingClientRect.top,
+          }))
+          .sort((a, b) => a.top - b.top);
+
+        if (visibleHeadings.length > 0) {
+          onActiveHeadingChange(visibleHeadings[0].id);
+        }
+      },
+      {
+        root: container,
+        rootMargin: "-10% 0px -70% 0px", // Top 10% zone triggers heading change
+        threshold: 0,
+      },
+    );
+
+    // Observe all heading elements with IDs
+    const headings = container.querySelectorAll("h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]");
+    headings.forEach((h) => observer.observe(h));
+
+    return () => observer.disconnect();
+  }, [htmlContent, onActiveHeadingChange]);
 
   if (!document) {
     return (
