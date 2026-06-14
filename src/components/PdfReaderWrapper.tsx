@@ -21,16 +21,16 @@ export function PdfReaderWrapper({ data, outline, onActiveHeadingChange }: PdfRe
     const container = containerRef.current;
     if (!container) return;
 
-    // Build a sorted map: page number → outline node id
-    const pageToNodeId = new Map<number, string>();
+    // Build a sorted map: page number → outline node anchorId
+    const pageToAnchorId = new Map<number, string>();
     function walk(nodes: OutlineNode[]) {
       for (const node of nodes) {
         if (node.anchorId) {
           const m = node.anchorId.match(/^pdf-page-(\d+)$/);
           if (m) {
             const pageNum = parseInt(m[1], 10);
-            if (!pageToNodeId.has(pageNum)) {
-              pageToNodeId.set(pageNum, node.id);
+            if (!pageToAnchorId.has(pageNum)) {
+              pageToAnchorId.set(pageNum, node.anchorId);
             }
           }
         }
@@ -39,9 +39,9 @@ export function PdfReaderWrapper({ data, outline, onActiveHeadingChange }: PdfRe
     }
     walk(outline);
 
-    if (pageToNodeId.size === 0) return;
+    if (pageToAnchorId.size === 0) return;
 
-    const sortedPages = Array.from(pageToNodeId.keys()).sort((a, b) => a - b);
+    const sortedPages = Array.from(pageToAnchorId.keys()).sort((a, b) => a - b);
 
     const raf = requestAnimationFrame(() => {
       const pageElements = container.querySelectorAll('[id^="pdf-page-"]');
@@ -61,15 +61,15 @@ export function PdfReaderWrapper({ data, outline, onActiveHeadingChange }: PdfRe
 
           const topVisiblePage = Math.min(...visiblePageNums);
 
-          let bestNodeId: string | null = null;
+          let bestAnchorId: string | null = null;
           for (const pageNum of sortedPages) {
             if (pageNum <= topVisiblePage) {
-              bestNodeId = pageToNodeId.get(pageNum) ?? null;
+              bestAnchorId = pageToAnchorId.get(pageNum) ?? null;
             } else {
               break;
             }
           }
-          if (bestNodeId) onActiveHeadingChange(bestNodeId);
+          if (bestAnchorId) onActiveHeadingChange(bestAnchorId);
         },
         {
           root: container,
