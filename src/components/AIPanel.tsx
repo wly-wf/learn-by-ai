@@ -26,6 +26,10 @@ export function AIPanel({ conversation, hasApiKey, onSendMessage, onNewConversat
     }
   }, [conversation, onSendMessage]);
 
+  // Context management — shared across both branches
+  const addContext = useCallback((ctx: ContextRef) => setContexts((prev) => [...prev, ctx]), []);
+  const removeContext = useCallback((id: string) => setContexts((prev) => prev.filter((c) => c.id !== id)), []);
+
   // Listen for add-context events from ReaderArea
   React.useEffect(() => {
     const handler = (e: Event) => {
@@ -45,7 +49,7 @@ export function AIPanel({ conversation, hasApiKey, onSendMessage, onNewConversat
           <span className="text-xs text-center">请先在设置中配置 AI 服务</span>
           <span className="text-[10px] mt-1 text-center">点击右上角 ⚙️ 添加 API Key</span>
         </div>
-        <ChatInput contexts={contexts} onAddContext={() => {}} onRemoveContext={() => {}} onSend={() => {}} disabled={true} />
+        <ChatInput contexts={contexts} onAddContext={addContext} onRemoveContext={removeContext} onSend={() => {}} disabled={true} />
       </div>
     );
   }
@@ -60,8 +64,8 @@ export function AIPanel({ conversation, hasApiKey, onSendMessage, onNewConversat
       {isLoading && <div className="px-3 py-1.5 text-[10px] text-gray-400 animate-pulse">🤖 AI 思考中...</div>}
       <ChatInput
         contexts={contexts}
-        onAddContext={(ctx) => setContexts((prev) => [...prev, ctx])}
-        onRemoveContext={(id) => { console.log("AIPanel onRemoveContext called, id:", id); setContexts((prev) => { console.log("setContexts filtering, prev:", prev, "removing:", id); return prev.filter((c) => c.id !== id); }); }}
+        onAddContext={addContext}
+        onRemoveContext={removeContext}
         onSend={handleSend}
         disabled={isLoading}
       />

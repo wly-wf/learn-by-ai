@@ -22,7 +22,7 @@ export function ContextCard({ context, onRemove }: ContextCardProps) {
         )}
       </div>
       <button
-        onClick={(e) => { e.stopPropagation(); e.preventDefault(); console.log("ContextCard remove clicked, id:", context.id); onRemove(context.id); }}
+        onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRemove(context.id); }}
         className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors leading-none"
         aria-label="删除上下文"
       >
