@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import type { DocumentMeta } from "../types";
 import { FloatingToolbar } from "./FloatingToolbar";
@@ -64,6 +64,10 @@ export const ReaderArea = React.memo(function ReaderArea({
 
   const closeToolbar = useCallback(() => setToolbar((prev) => ({ ...prev, visible: false })), []);
   const closeContextMenu = useCallback(() => setContextMenu((prev) => ({ ...prev, visible: false })), []);
+
+  // Memoize sanitized HTML — DOMPurify is expensive on large documents (e.g. Word)
+  // and re-running it on every toolbar/context-menu state change causes visual jitter.
+  const sanitizedHtml = useMemo(() => DOMPurify.sanitize(htmlContent), [htmlContent]);
 
   const handleContainerClick = useCallback((_e: React.MouseEvent) => {
     // Only close toolbar if clicking outside any text selection
@@ -145,7 +149,7 @@ export const ReaderArea = React.memo(function ReaderArea({
   return (
     <div className="relative h-full overflow-hidden" onClick={handleContainerClick}>
       <div ref={contentRef} className="h-full overflow-y-auto px-8 py-6" onMouseUp={handleMouseUp} onContextMenu={handleContextMenu} onScroll={handleScroll}>
-        <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }} />
+        <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
       </div>
       <FloatingToolbar visible={toolbar.visible} position={toolbar.position} onAskAI={() => { onAskAI(toolbar.selectedText); closeToolbar(); }} onTakeNote={() => { onTakeNote(toolbar.selectedText); closeToolbar(); }} onExplain={() => { onExplain(toolbar.selectedText); closeToolbar(); }} />
       <ContextMenu visible={contextMenu.visible} position={contextMenu.position} onClose={closeContextMenu} onAskAI={() => onAskAI(contextMenu.selectedText)} onTranslate={() => onTranslate(contextMenu.selectedText)} onSummarize={() => onSummarize(contextMenu.selectedText)} />
