@@ -1,0 +1,97 @@
+import { useEffect, useRef } from "react";
+import type { OutlineNode } from "../types";
+import { PdfViewer } from "./PdfViewer";
+
+interface PdfReaderWrapperProps {
+  data: ArrayBuffer;
+  outline: OutlineNode[];
+  onActiveHeadingChange?: (headingId: string | null) => void;
+}
+
+/**
+ * Wraps PdfViewer with IntersectionObserver to track which page is visible
+ * and update the outline panel's active heading accordingly.
+ */
+export function PdfReaderWrapper({ data, outline, onActiveHeadingChange }: PdfReaderWrapperProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    if (!onActiveHeadingChange || outline.length === 0) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Build a sorted map: page number → outline node id
+    const pageToNodeId = new Map<number, string>();
+    function walk(nodes: OutlineNode[]) {
+      for (const node of nodes) {
+        if (node.anchorId) {
+          const m = node.anchorId.match(/^pdf-page-(\d+)$/);
+          if (m) {
+            const pageNum = parseInt(m[1], 10);
+            if (!pageToNodeId.has(pageNum)) {
+              pageToNodeId.set(pageNum, node.id);
+            }
+          }
+        }
+        walk(node.children);
+      }
+    }
+    walk(outline);
+
+    if (pageToNodeId.size === 0) return;
+
+    const sortedPages = Array.from(pageToNodeId.keys()).sort((a, b) => a - b);
+
+    const raf = requestAnimationFrame(() => {
+      const pageElements = container.querySelectorAll('[id^="pdf-page-"]');
+      if (pageElements.length === 0) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visiblePageNums = entries
+            .filter((e) => e.isIntersecting)
+            .map((e) => {
+              const m = (e.target as HTMLElement).id.match(/^pdf-page-(\d+)$/);
+              return m ? parseInt(m[1], 10) : null;
+            })
+            .filter((n): n is number => n !== null);
+
+          if (visiblePageNums.length === 0) return;
+
+          const topVisiblePage = Math.min(...visiblePageNums);
+
+          let bestNodeId: string | null = null;
+          for (const pageNum of sortedPages) {
+            if (pageNum <= topVisiblePage) {
+              bestNodeId = pageToNodeId.get(pageNum) ?? null;
+            } else {
+              break;
+            }
+          }
+          if (bestNodeId) onActiveHeadingChange(bestNodeId);
+        },
+        {
+          root: container,
+          rootMargin: "-5% 0px -80% 0px",
+          threshold: 0,
+        },
+      );
+
+      pageElements.forEach((el) => observer.observe(el));
+      observerRef.current = observer;
+    });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+    };
+  }, [outline, onActiveHeadingChange]);
+
+  return (
+    <div ref={containerRef} className="h-full overflow-y-auto px-4 py-4">
+      <PdfViewer data={data} />
+    </div>
+  );
+}

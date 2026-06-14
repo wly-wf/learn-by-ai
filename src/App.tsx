@@ -7,7 +7,7 @@ import { AIPanel } from "./components/AIPanel";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { PdfViewer } from "./components/PdfViewer";
+import { PdfReaderWrapper } from "./components/PdfReaderWrapper";
 import { parseDocument, extractOutline } from "./services/documentParser";
 import type { OutlineNode } from "./types";
 import { generateId } from "./lib/utils";
@@ -190,9 +190,11 @@ function AppInner() {
         }
         readerArea={
           activeContent?.format === "pdf" && activeContent.pdfBuffer ? (
-            <div className="h-full overflow-y-auto px-4 py-4">
-              <PdfViewer data={activeContent.pdfBuffer} />
-            </div>
+            <PdfReaderWrapper
+              data={activeContent.pdfBuffer}
+              outline={activeContent.outline}
+              onActiveHeadingChange={setActiveHeadingId}
+            />
           ) : (
             <ReaderArea document={ctx.activeDocument} htmlContent={activeContent?.html || ""}
               onAskAI={handleAskAI}
