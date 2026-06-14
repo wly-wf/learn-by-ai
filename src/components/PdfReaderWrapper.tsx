@@ -11,10 +11,14 @@ interface PdfReaderWrapperProps {
 /**
  * Wraps PdfViewer with IntersectionObserver to track which page is visible
  * and update the outline panel's active heading accordingly.
+ *
+ * Uses a MutationObserver to wait for PdfViewer's async page rendering,
+ * then sets up an IntersectionObserver for scroll-based outline sync.
  */
 export function PdfReaderWrapper({ data, outline, onActiveHeadingChange }: PdfReaderWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const mutationRef = useRef<MutationObserver | null>(null);
 
   useEffect(() => {
     if (!onActiveHeadingChange || outline.length === 0) return;
@@ -43,11 +47,17 @@ export function PdfReaderWrapper({ data, outline, onActiveHeadingChange }: PdfRe
 
     const sortedPages = Array.from(pageToAnchorId.keys()).sort((a, b) => a - b);
 
-    const raf = requestAnimationFrame(() => {
+    // PdfViewer renders pages asynchronously. Use MutationObserver to detect
+    // when page elements appear in the DOM, then set up the IntersectionObserver.
+    const mutationObserver = new MutationObserver(() => {
       const pageElements = container.querySelectorAll('[id^="pdf-page-"]');
       if (pageElements.length === 0) return;
 
-      const observer = new IntersectionObserver(
+      // Pages found — stop watching DOM mutations
+      mutationObserver.disconnect();
+      mutationRef.current = null;
+
+      const intersectionObserver = new IntersectionObserver(
         (entries) => {
           const visiblePageNums = entries
             .filter((e) => e.isIntersecting)
@@ -78,12 +88,16 @@ export function PdfReaderWrapper({ data, outline, onActiveHeadingChange }: PdfRe
         },
       );
 
-      pageElements.forEach((el) => observer.observe(el));
-      observerRef.current = observer;
+      pageElements.forEach((el) => intersectionObserver.observe(el));
+      observerRef.current = intersectionObserver;
     });
 
+    mutationObserver.observe(container, { childList: true, subtree: true });
+    mutationRef.current = mutationObserver;
+
     return () => {
-      cancelAnimationFrame(raf);
+      mutationObserver.disconnect();
+      mutationRef.current = null;
       observerRef.current?.disconnect();
       observerRef.current = null;
     };
