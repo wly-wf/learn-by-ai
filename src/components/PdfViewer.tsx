@@ -42,6 +42,7 @@ export function PdfViewer({ data }: PdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const renderTasksRef = useRef<Array<{ cancel: () => void }>>([]);
   const isMountedRef = useRef(true);
+  const blankRetryRef = useRef(0); // prevent infinite retry loop on genuinely blank pages
 
   // Force re-render when tab/document becomes visible (handles Chromium canvas reclamation)
   const handleVisibilityChange = useCallback(() => {
@@ -195,18 +196,22 @@ export function PdfViewer({ data }: PdfViewerProps) {
           }
         }
 
-        // After all pages rendered, verify canvases aren't blank (Chromium may have reclaimed them)
+        // After all pages rendered, verify canvases aren't blank (Chromium may have reclaimed them).
+        // Retry at most once — prevents infinite loop on PDFs with genuinely blank pages.
         if (!cancelled && isMountedRef.current) {
           await new Promise((r) => requestAnimationFrame(r));
           for (const info of infos) {
             const canvas = info.canvasRef.current;
             if (canvas && isCanvasBlank(canvas)) {
-              // Canvas was reclaimed — retry once
-              console.warn(`PdfViewer: page ${info.pageNum} canvas blank after render, retrying...`);
-              setRenderGeneration((g) => g + 1);
+              if (blankRetryRef.current < 1) {
+                blankRetryRef.current += 1;
+                setRenderGeneration((g) => g + 1);
+              }
               return;
             }
           }
+          // All canvases have content — reset retry counter for next data change
+          blankRetryRef.current = 0;
         }
       } catch (err) {
         if (!cancelled && isMountedRef.current) {

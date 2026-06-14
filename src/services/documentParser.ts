@@ -72,7 +72,6 @@ export async function parseDocument(
     case "pdf": {
       try {
         const pdfjsLib = await import("pdfjs-dist");
-        // Use CDN worker to bypass Vite's module resolution conflict with pdf.js dynamic import()
         pdfjsLib.GlobalWorkerOptions.workerSrc =
           "https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
 
@@ -82,20 +81,6 @@ export async function parseDocument(
 
         const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
         const pdf = await loadingTask.promise;
-        let fullText = "";
-        let htmlParts: string[] = [];
-
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items
-            .map((item: any) => item.str)
-            .join(" ");
-          fullText += pageText + "\n\n";
-          htmlParts.push(`<div class="pdf-page" data-page="${i}"><div class="pdf-page-number text-xs text-gray-400 mb-2">第 ${i} 页</div><p>${pageText || "&nbsp;"}</p></div>`);
-        }
-
-        const html = addHeadingIds(`<div class="pdf-viewer">${htmlParts.join("\n")}</div>`);
 
         // Extract PDF built-in outline (bookmarks/table of contents)
         let pdfOutline: OutlineNode[] | undefined;
@@ -104,7 +89,6 @@ export async function parseDocument(
           if (rawOutline && rawOutline.length > 0) {
             let nodeId = 0;
 
-            // Resolve a destination to a 1-based page number
             async function resolvePageNumber(dest: string | any[] | null): Promise<number | null> {
               if (!dest) return null;
               try {
@@ -119,7 +103,7 @@ export async function parseDocument(
                 if (Array.isArray(resolved) && resolved.length > 0) {
                   const pageRef = resolved[0];
                   const pageIndex = await pdf.getPageIndex(pageRef);
-                  return pageIndex + 1; // 1-based
+                  return pageIndex + 1;
                 }
               } catch { /* ignore unresolvable destinations */ }
               return null;
@@ -149,10 +133,10 @@ export async function parseDocument(
             pdfOutline = await convertOutlineItems(rawOutline);
           }
         } catch {
-          // PDF has no outline — that's fine, outline panel will just show empty
+          // PDF has no outline — that's fine
         }
 
-        return { html, rawText: fullText, pdfOutline };
+        return { html: "", rawText: "", pdfOutline };
       } catch (err) {
         throw new Error(`PDF 解析失败: ${err instanceof Error ? err.message : "未知错误"}`);
       }
