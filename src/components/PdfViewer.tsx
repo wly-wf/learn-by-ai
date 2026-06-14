@@ -4,13 +4,38 @@ interface PageInfo {
   pageNum: number;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   textLayerRef: React.RefObject<HTMLDivElement | null>;
-  /** Pre-fetched viewport dimensions so the page container has the correct size from the start, before the canvas is rendered. */
   viewportWidth: number;
   viewportHeight: number;
 }
 
 interface PdfViewerProps {
   data: ArrayBuffer;
+}
+
+const RENDER_CONCURRENCY = 4; // Render up to 4 pages in parallel
+
+/**
+ * Render pages in batches with controlled concurrency.
+ * Processes items in parallel batches of `concurrency` size.
+ */
+async function renderBatch<T>(
+  items: T[],
+  concurrency: number,
+  renderFn: (item: T, index: number) => Promise<void>,
+  signal: { cancelled: boolean },
+): Promise<void> {
+  let nextIndex = 0;
+
+  async function worker() {
+    while (!signal.cancelled) {
+      const index = nextIndex++;
+      if (index >= items.length) return;
+      await renderFn(items[index], index);
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(workers);
 }
 
 export function PdfViewer({ data }: PdfViewerProps) {
@@ -27,7 +52,7 @@ export function PdfViewer({ data }: PdfViewerProps) {
       return;
     }
 
-    let cancelled = false;
+    const signal = { cancelled: false };
 
     async function renderPdf() {
       try {
@@ -39,67 +64,79 @@ export function PdfViewer({ data }: PdfViewerProps) {
         const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(safeData) });
         const pdf = await loadingTask.promise;
 
-        // Phase 1: pre-fetch all page viewports (fast — metadata only, no rendering)
-        // so that canvas dimensions are known before DOM elements are created.
-        const pageInfos: PageInfo[] = [];
-        for (let i = 1; i <= pdf.numPages; i++) {
-          if (cancelled) return;
-          const page = await pdf.getPage(i);
-          const viewport = page.getViewport({ scale: 1.5 });
-          pageInfos.push({
-            pageNum: i,
-            canvasRef: React.createRef<HTMLCanvasElement>(),
-            textLayerRef: React.createRef<HTMLDivElement>(),
-            viewportWidth: viewport.width,
-            viewportHeight: viewport.height,
-          });
-        }
+        const numPages = pdf.numPages;
+
+        // Phase 1: fetch all page viewports in parallel (metadata only, fast)
+        const pageMetas = await Promise.all(
+          Array.from({ length: numPages }, async (_, i) => {
+            const page = await pdf.getPage(i + 1);
+            const viewport = page.getViewport({ scale: 1.5 });
+            return { pageNum: i + 1, viewport };
+          }),
+        );
+
+        if (signal.cancelled) return;
+
+        const pageInfos: PageInfo[] = pageMetas.map(({ pageNum, viewport }) => ({
+          pageNum,
+          canvasRef: React.createRef<HTMLCanvasElement>(),
+          textLayerRef: React.createRef<HTMLDivElement>(),
+          viewportWidth: viewport.width,
+          viewportHeight: viewport.height,
+        }));
 
         setPages(pageInfos);
         setLoading(false);
 
         // Allow React to commit the DOM with correct canvas sizes
-        await new Promise((resolve) => setTimeout(resolve, 30));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        // Phase 2: render each page
-        for (let i = 1; i <= pdf.numPages; i++) {
-          if (cancelled) return;
-          const page = await pdf.getPage(i);
-          const viewport = page.getViewport({ scale: 1.5 });
+        // Phase 2: render all pages in parallel batches
+        await renderBatch(
+          pageMetas,
+          RENDER_CONCURRENCY,
+          async ({ pageNum, viewport }, i) => {
+            if (signal.cancelled) return;
 
-          const info = pageInfos[i - 1];
-          const canvas = info.canvasRef.current;
-          if (canvas) {
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            const ctx = canvas.getContext("2d")!;
-            await page.render({ canvasContext: ctx, viewport }).promise;
-          }
+            const info = pageInfos[i];
+            const canvas = info.canvasRef.current;
+            if (canvas) {
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              const ctx = canvas.getContext("2d")!;
 
-          // Render selectable text layer
-          const textLayerDiv = info.textLayerRef.current;
-          if (textLayerDiv && pdfjsLib.renderTextLayer) {
-            const textContent = await page.getTextContent();
-            try {
-              const renderTask = pdfjsLib.renderTextLayer({
-                textContentSource: textContent,
-                container: textLayerDiv,
-                viewport,
-                textDivs: [],
-              });
-              if (renderTask?.promise) await renderTask.promise;
-            } catch {
-              // Non-critical
+              // pdf.js caches pages internally, so getPage here is fast
+              const page = await pdf.getPage(pageNum);
+              await page.render({ canvasContext: ctx, viewport }).promise;
             }
-          }
 
-          if (textLayerDiv) {
-            textLayerDiv.style.height = `${viewport.height}px`;
-            textLayerDiv.style.width = `${viewport.width}px`;
-          }
-        }
+            // Render text layer
+            const textLayerDiv = info.textLayerRef.current;
+            if (textLayerDiv && pdfjsLib.renderTextLayer) {
+              try {
+                const page = await pdf.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                const renderTask = pdfjsLib.renderTextLayer({
+                  textContentSource: textContent,
+                  container: textLayerDiv,
+                  viewport,
+                  textDivs: [],
+                });
+                if (renderTask?.promise) await renderTask.promise;
+              } catch {
+                // Non-critical
+              }
+            }
+
+            if (textLayerDiv) {
+              textLayerDiv.style.height = `${viewport.height}px`;
+              textLayerDiv.style.width = `${viewport.width}px`;
+            }
+          },
+          signal,
+        );
       } catch (err) {
-        if (!cancelled) {
+        if (!signal.cancelled) {
           setError(err instanceof Error ? err.message : "PDF 渲染失败");
           setLoading(false);
         }
@@ -107,7 +144,7 @@ export function PdfViewer({ data }: PdfViewerProps) {
     }
 
     renderPdf();
-    return () => { cancelled = true; };
+    return () => { signal.cancelled = true; };
   }, [data]);
 
   if (error) {
