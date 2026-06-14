@@ -103,33 +103,50 @@ export async function parseDocument(
           const rawOutline = await pdf.getOutline();
           if (rawOutline && rawOutline.length > 0) {
             let nodeId = 0;
-            const slugCounts = new Map<string, number>();
 
-            function convertOutlineItems(items: typeof rawOutline): OutlineNode[] {
-              return items.map((item) => {
+            // Resolve a destination to a 1-based page number
+            async function resolvePageNumber(dest: string | any[] | null): Promise<number | null> {
+              if (!dest) return null;
+              try {
+                let resolved: any[];
+                if (typeof dest === "string") {
+                  const d = await pdf.getDestination(dest);
+                  if (!d) return null;
+                  resolved = d;
+                } else {
+                  resolved = dest;
+                }
+                if (Array.isArray(resolved) && resolved.length > 0) {
+                  const pageRef = resolved[0];
+                  const pageIndex = await pdf.getPageIndex(pageRef);
+                  return pageIndex + 1; // 1-based
+                }
+              } catch { /* ignore unresolvable destinations */ }
+              return null;
+            }
+
+            async function convertOutlineItems(items: typeof rawOutline, level: number = 1): Promise<OutlineNode[]> {
+              const result: OutlineNode[] = [];
+              for (const item of items) {
                 const id = `outline-${nodeId++}`;
-                const slug = slugify(item.title);
-                const count = slugCounts.get(slug) ?? 0;
-                slugCounts.set(slug, count + 1);
-                const anchorId =
-                  count === 0 ? `heading-${slug}` : `heading-${slug}-${count + 1}`;
+                const pageNum = await resolvePageNumber(item.dest);
+                const anchorId = pageNum ? `pdf-page-${pageNum}` : undefined;
 
-                return {
+                const node: OutlineNode = {
                   id,
                   title: item.title,
-                  level: 1, // Top-level outline items; children will be nested
+                  level,
                   children: item.items && item.items.length > 0
-                    ? convertOutlineItems(item.items).map((child) => ({
-                        ...child,
-                        level: 2,
-                      }))
+                    ? await convertOutlineItems(item.items, level + 1)
                     : [],
                   anchorId,
                 };
-              });
+                result.push(node);
+              }
+              return result;
             }
 
-            pdfOutline = convertOutlineItems(rawOutline);
+            pdfOutline = await convertOutlineItems(rawOutline);
           }
         } catch {
           // PDF has no outline — that's fine, outline panel will just show empty

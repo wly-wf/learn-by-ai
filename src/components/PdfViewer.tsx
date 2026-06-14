@@ -132,7 +132,7 @@ export function PdfViewer({ data }: PdfViewerProps) {
         }
       `}</style>
       {pages.map(({ pageNum, canvasRef, textLayerRef }) => (
-        <div key={pageNum} className="pdf-page shadow-md bg-white mx-auto relative" style={{ maxWidth: "100%" }}>
+        <div key={pageNum} id={`pdf-page-${pageNum}`} className="pdf-page shadow-md bg-white mx-auto relative" style={{ maxWidth: "100%" }}>
           <div className="text-xs text-gray-400 text-center py-1 bg-gray-50 border-b">第 {pageNum} 页</div>
           <div className="relative">
             <canvas ref={canvasRef} className="block mx-auto" style={{ maxWidth: "100%", height: "auto" }} />
