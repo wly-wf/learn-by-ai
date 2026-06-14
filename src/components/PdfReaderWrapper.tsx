@@ -8,58 +8,41 @@ interface PdfReaderWrapperProps {
   onActiveHeadingChange?: (headingId: string | null) => void;
 }
 
-/**
- * Wraps PdfViewer with IntersectionObserver to track which page is visible
- * and update the outline panel's active heading accordingly.
- *
- * Uses a MutationObserver to wait for PdfViewer's async page rendering,
- * then sets up an IntersectionObserver for scroll-based outline sync.
- */
 export function PdfReaderWrapper({ data, outline, onActiveHeadingChange }: PdfReaderWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const mutationRef = useRef<MutationObserver | null>(null);
 
   useEffect(() => {
     if (!onActiveHeadingChange || outline.length === 0) return;
     const container = containerRef.current;
     if (!container) return;
 
-    // Build a sorted map: page number → outline node anchorId
     const pageToAnchorId = new Map<number, string>();
     function walk(nodes: OutlineNode[]) {
       for (const node of nodes) {
         if (node.anchorId) {
           const m = node.anchorId.match(/^pdf-page-(\d+)$/);
-          if (m) {
-            const pageNum = parseInt(m[1], 10);
-            if (!pageToAnchorId.has(pageNum)) {
-              pageToAnchorId.set(pageNum, node.anchorId);
-            }
+          if (m && !pageToAnchorId.has(parseInt(m[1], 10))) {
+            pageToAnchorId.set(parseInt(m[1], 10), node.anchorId);
           }
         }
         walk(node.children);
       }
     }
     walk(outline);
-
     if (pageToAnchorId.size === 0) return;
 
     const sortedPages = Array.from(pageToAnchorId.keys()).sort((a, b) => a - b);
 
-    // PdfViewer renders pages asynchronously. Use MutationObserver to detect
-    // when page elements appear in the DOM, then set up the IntersectionObserver.
-    const mutationObserver = new MutationObserver(() => {
+    // PdfViewer renders asynchronously — wait for page elements via MutationObserver
+    const mo = new MutationObserver(() => {
       const pageElements = container.querySelectorAll('[id^="pdf-page-"]');
       if (pageElements.length === 0) return;
+      mo.disconnect();
 
-      // Pages found — stop watching DOM mutations
-      mutationObserver.disconnect();
-      mutationRef.current = null;
-
-      const intersectionObserver = new IntersectionObserver(
+      const io = new IntersectionObserver(
         (entries) => {
-          const visiblePageNums = entries
+          const visible = entries
             .filter((e) => e.isIntersecting)
             .map((e) => {
               const m = (e.target as HTMLElement).id.match(/^pdf-page-(\d+)$/);
@@ -67,44 +50,33 @@ export function PdfReaderWrapper({ data, outline, onActiveHeadingChange }: PdfRe
             })
             .filter((n): n is number => n !== null);
 
-          if (visiblePageNums.length === 0) return;
+          if (visible.length === 0) return;
+          const topPage = Math.min(...visible);
 
-          const topVisiblePage = Math.min(...visiblePageNums);
-
-          let bestAnchorId: string | null = null;
-          for (const pageNum of sortedPages) {
-            if (pageNum <= topVisiblePage) {
-              bestAnchorId = pageToAnchorId.get(pageNum) ?? null;
-            } else {
-              break;
-            }
+          let best: string | null = null;
+          for (const p of sortedPages) {
+            if (p <= topPage) best = pageToAnchorId.get(p) ?? null;
+            else break;
           }
-          if (bestAnchorId) onActiveHeadingChange(bestAnchorId);
+          if (best) onActiveHeadingChange(best);
         },
-        {
-          root: container,
-          rootMargin: "-5% 0px -80% 0px",
-          threshold: 0,
-        },
+        { root: container, rootMargin: "-5% 0px -80% 0px", threshold: 0 },
       );
 
-      pageElements.forEach((el) => intersectionObserver.observe(el));
-      observerRef.current = intersectionObserver;
+      pageElements.forEach((el) => io.observe(el));
+      observerRef.current = io;
     });
 
-    mutationObserver.observe(container, { childList: true, subtree: true });
-    mutationRef.current = mutationObserver;
+    mo.observe(container, { childList: true, subtree: true });
 
     return () => {
-      mutationObserver.disconnect();
-      mutationRef.current = null;
+      mo.disconnect();
       observerRef.current?.disconnect();
-      observerRef.current = null;
     };
   }, [outline, onActiveHeadingChange]);
 
   return (
-    <div ref={containerRef} className="h-full overflow-y-auto px-4 py-4">
+    <div ref={containerRef} className="h-full overflow-y-auto px-3 py-4">
       <PdfViewer data={data} />
     </div>
   );

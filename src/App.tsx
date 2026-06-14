@@ -35,6 +35,8 @@ function AppInner() {
     ? docContents.get(ctx.activeDocumentId)
     : undefined;
 
+  const activeDoc = ctx.activeDocument;
+
   const loadDocumentContent = useCallback(async (_docId: string, content: ArrayBuffer, format: string) => {
     try {
       // Clone buffer for safe storage — parseDocument/pdf.js may transfer the original
@@ -189,14 +191,25 @@ function AppInner() {
           />
         }
         readerArea={
-          activeContent?.format === "pdf" && activeContent.pdfBuffer ? (
-            <PdfReaderWrapper
-              data={activeContent.pdfBuffer}
-              outline={activeContent.outline}
-              onActiveHeadingChange={setActiveHeadingId}
-            />
+          !activeDoc ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
+              <span className="text-4xl mb-3">📖</span>
+              <span className="text-sm">打开一个文档开始阅读</span>
+              <span className="text-xs mt-1">支持 PDF、Word、Markdown、TXT</span>
+            </div>
+          ) : activeDoc.format === "pdf" ? (
+            activeContent?.pdfBuffer ? (
+              <PdfReaderWrapper
+                key={ctx.activeDocumentId}
+                data={activeContent.pdfBuffer}
+                outline={activeContent.outline}
+                onActiveHeadingChange={setActiveHeadingId}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-400 text-sm">正在解析 PDF...</div>
+            )
           ) : (
-            <ReaderArea document={ctx.activeDocument} htmlContent={activeContent?.html || ""}
+            <ReaderArea document={activeDoc} htmlContent={activeContent?.html || ""}
               onAskAI={handleAskAI}
               onTakeNote={(text) => handleAskAI(text)}
               onExplain={(text) => handleAskAI(text)}

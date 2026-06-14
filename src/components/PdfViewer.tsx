@@ -1,92 +1,215 @@
-import React, { useEffect, useLayoutEffect, useState, useRef } from "react";
-
-interface PageMeta {
-  pageNum: number;
-  viewport: any; // PageViewport from pdfjs-dist
-}
+import React, { useEffect, useState, useRef, useCallback } from "react";
 
 interface PageInfo {
   pageNum: number;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   textLayerRef: React.RefObject<HTMLDivElement | null>;
-  viewportWidth: number;
-  viewportHeight: number;
+  cssWidth: number;
+  cssHeight: number;
 }
 
 interface PdfViewerProps {
   data: ArrayBuffer;
 }
 
-/**
- * Lazy PDF page renderer.
- *
- * Phase 1: fetch all page viewports in parallel (metadata only), create DOM with
- *           correct canvas sizes so scrolling works immediately.
- * Phase 2: observe which pages enter the viewport via IntersectionObserver and
- *           render only those pages (canvas + text layer). Already-rendered pages
- *           are skipped. A rootMargin buffer renders pages slightly ahead of scroll.
- */
+const CSS_SCALE = 1.0;
+const CANVAS_SCALE = Math.min(window.devicePixelRatio || 1, 2);
+const MAX_FIT_SCALE = 2.5;
+
+function isCanvasBlank(canvas: HTMLCanvasElement): boolean {
+  if (canvas.width === 0 || canvas.height === 0) return true;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return true;
+  // Sample a few pixels from different regions — faster than checking every pixel
+  const samplePoints = [
+    [0, 0], [canvas.width - 1, 0],
+    [0, canvas.height - 1], [canvas.width - 1, canvas.height - 1],
+    [Math.floor(canvas.width / 2), Math.floor(canvas.height / 2)],
+  ];
+  for (const [x, y] of samplePoints) {
+    const [r, g, b, a] = ctx.getImageData(x, y, 1, 1).data;
+    // If any sampled pixel has visible content, canvas is not blank
+    if (a > 0 && (r > 0 || g > 0 || b > 0)) return false;
+  }
+  return true;
+}
+
 export function PdfViewer({ data }: PdfViewerProps) {
   const [pages, setPages] = useState<PageInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [renderGeneration, setRenderGeneration] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const renderTasksRef = useRef<Array<{ cancel: () => void }>>([]);
+  const isMountedRef = useRef(true);
 
-  // Refs that survive across renders — used inside IntersectionObserver callback
-  const pageInfosRef = useRef<PageInfo[]>([]);
-  const renderedRef = useRef<Set<number>>(new Set());
-  const pdfRef = useRef<any>(null);
-  const pdfjsLibRef = useRef<any>(null);
-  const renderingRef = useRef<Set<number>>(new Set()); // Pages currently being rendered (prevent duplicates)
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  // Force re-render when tab/document becomes visible (handles Chromium canvas reclamation)
+  const handleVisibilityChange = useCallback(() => {
+    if (document.visibilityState !== "visible") return;
+    // Check if any rendered canvas has been blanked by Chromium
+    const canvases = containerRef.current?.querySelectorAll("canvas");
+    if (!canvases || canvases.length === 0) return;
+    for (const canvas of canvases) {
+      if (isCanvasBlank(canvas as HTMLCanvasElement)) {
+        // Canvas was reclaimed — trigger a full re-render
+        setRenderGeneration((g) => g + 1);
+        return;
+      }
+    }
+  }, []);
 
   useEffect(() => {
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    // Also listen for focus — WebView2 may reclaim on focus loss
+    window.addEventListener("focus", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
+    };
+  }, [handleVisibilityChange]);
+
+  // Track mount state for async safety
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    setPages([]);
+    setError(null);
+
     let safeData: ArrayBuffer;
     try {
       safeData = data.slice(0);
     } catch {
+      if (isMountedRef.current) {
+        setError("无法读取文件数据");
+        setLoading(false);
+      }
       return;
     }
 
     let cancelled = false;
+    // Clear any pending render tasks from previous run
+    renderTasksRef.current.forEach((t) => t.cancel());
+    renderTasksRef.current = [];
 
     async function load() {
       try {
+        if (!isMountedRef.current) return;
         setLoading(true);
 
         const pdfjsLib = await import("pdfjs-dist");
         pdfjsLib.GlobalWorkerOptions.workerSrc =
           "https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
-        pdfjsLibRef.current = pdfjsLib;
 
-        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(safeData) });
-        const pdf = await loadingTask.promise;
-        pdfRef.current = pdf;
+        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(safeData) }).promise;
+        if (cancelled || !isMountedRef.current) return;
 
-        // Phase 1: fetch all page viewports in parallel (metadata only — fast)
-        const pageMetas: PageMeta[] = await Promise.all(
+        // Phase 1a: fetch natural (1x) page viewports in parallel
+        const naturalMetas = await Promise.all(
           Array.from({ length: pdf.numPages }, async (_, i) => {
             const page = await pdf.getPage(i + 1);
-            const viewport = page.getViewport({ scale: 1.5 });
-            return { pageNum: i + 1, viewport };
+            const vp = page.getViewport({ scale: CSS_SCALE });
+            return { pageNum: i + 1, naturalWidth: vp.width, naturalHeight: vp.height };
           }),
         );
 
-        if (cancelled) return;
+        if (cancelled || !isMountedRef.current) return;
 
-        const pageInfos: PageInfo[] = pageMetas.map(({ pageNum, viewport }) => ({
-          pageNum,
-          canvasRef: React.createRef<HTMLCanvasElement>(),
-          textLayerRef: React.createRef<HTMLDivElement>(),
-          viewportWidth: viewport.width,
-          viewportHeight: viewport.height,
-        }));
+        // Phase 1b: compute fit-to-width scale
+        const containerWidth = containerRef.current?.clientWidth ?? 0;
+        const maxNaturalWidth = Math.max(...naturalMetas.map((m) => m.naturalWidth), 1);
+        const fitScale =
+          containerWidth > 0
+            ? Math.min(containerWidth / maxNaturalWidth, MAX_FIT_SCALE)
+            : 1;
 
-        pageInfosRef.current = pageInfos;
-        setPages(pageInfos);
+        const displayScale = CSS_SCALE * fitScale;
+        const renderScale = CANVAS_SCALE * fitScale;
+
+        // Phase 1c: create skeleton with scaled CSS dimensions
+        const infos: PageInfo[] = naturalMetas.map(
+          ({ pageNum, naturalWidth, naturalHeight }) => ({
+            pageNum,
+            canvasRef: React.createRef<HTMLCanvasElement>(),
+            textLayerRef: React.createRef<HTMLDivElement>(),
+            cssWidth: naturalWidth * fitScale,
+            cssHeight: naturalHeight * fitScale,
+          }),
+        );
+
+        if (!isMountedRef.current) return;
+        setPages(infos);
         setLoading(false);
+
+        // Let React commit skeleton DOM
+        await new Promise((r) => requestAnimationFrame(r));
+        if (cancelled || !isMountedRef.current) return;
+
+        // Phase 2: render pages sequentially with active task tracking
+        for (let i = 0; i < infos.length; i++) {
+          if (cancelled || !isMountedRef.current) return;
+          const info = infos[i];
+          const page = await pdf.getPage(i + 1);
+
+          const canvasViewport = page.getViewport({ scale: renderScale });
+          const cssViewport = page.getViewport({ scale: displayScale });
+
+          const canvas = info.canvasRef.current;
+          if (canvas) {
+            canvas.width = canvasViewport.width;
+            canvas.height = canvasViewport.height;
+            canvas.style.width = `${cssViewport.width}px`;
+            canvas.style.height = `${cssViewport.height}px`;
+            const ctx = canvas.getContext("2d")!;
+            const renderTask = page.render({ canvasContext: ctx, viewport: canvasViewport });
+            renderTasksRef.current.push(renderTask);
+            try {
+              await renderTask.promise;
+            } catch (renderErr) {
+              // Render was cancelled — that's expected during cleanup
+              if (!cancelled && isMountedRef.current) throw renderErr;
+            }
+            // Remove completed task
+            renderTasksRef.current = renderTasksRef.current.filter((t) => t !== renderTask);
+          }
+
+          const textLayerDiv = info.textLayerRef.current;
+          if (textLayerDiv && pdfjsLib.renderTextLayer && !cancelled) {
+            try {
+              const textContent = await page.getTextContent();
+              if (cancelled || !isMountedRef.current) return;
+              textLayerDiv.style.width = `${cssViewport.width}px`;
+              textLayerDiv.style.height = `${cssViewport.height}px`;
+              const textTask = pdfjsLib.renderTextLayer({
+                textContentSource: textContent,
+                container: textLayerDiv,
+                viewport: cssViewport,
+                textDivs: [],
+              });
+              try {
+                await textTask.promise;
+              } catch { /* non-critical */ }
+            } catch { /* non-critical */ }
+          }
+        }
+
+        // After all pages rendered, verify canvases aren't blank (Chromium may have reclaimed them)
+        if (!cancelled && isMountedRef.current) {
+          await new Promise((r) => requestAnimationFrame(r));
+          for (const info of infos) {
+            const canvas = info.canvasRef.current;
+            if (canvas && isCanvasBlank(canvas)) {
+              // Canvas was reclaimed — retry once
+              console.warn(`PdfViewer: page ${info.pageNum} canvas blank after render, retrying...`);
+              setRenderGeneration((g) => g + 1);
+              return;
+            }
+          }
+        }
       } catch (err) {
-        if (!cancelled) {
+        if (!cancelled && isMountedRef.current) {
           setError(err instanceof Error ? err.message : "PDF 加载失败");
           setLoading(false);
         }
@@ -94,161 +217,46 @@ export function PdfViewer({ data }: PdfViewerProps) {
     }
 
     load();
-    return () => { cancelled = true; };
-  }, [data]);
-
-  // After React commits page skeleton to DOM, set up lazy rendering
-  useLayoutEffect(() => {
-    if (loading || pages.length === 0) return;
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    // Render a single page (canvas + text layer)
-    async function renderPage(pageNum: number) {
-      const pdf = pdfRef.current;
-      const pdfjsLib = pdfjsLibRef.current;
-      if (!pdf || !pdfjsLib) return;
-
-      // Prevent duplicate render triggers
-      if (renderedRef.current.has(pageNum) || renderingRef.current.has(pageNum)) return;
-      renderingRef.current.add(pageNum);
-
-      const info = pageInfosRef.current[pageNum - 1];
-      if (!info) { renderingRef.current.delete(pageNum); return; }
-
-      try {
-        const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 });
-
-        const canvas = info.canvasRef.current;
-        if (canvas) {
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          const ctx = canvas.getContext("2d")!;
-          await page.render({ canvasContext: ctx, viewport }).promise;
-        }
-
-        const textLayerDiv = info.textLayerRef.current;
-        if (textLayerDiv && pdfjsLib.renderTextLayer) {
-          try {
-            const textContent = await page.getTextContent();
-            const renderTask = pdfjsLib.renderTextLayer({
-              textContentSource: textContent,
-              container: textLayerDiv,
-              viewport,
-              textDivs: [],
-            });
-            if (renderTask?.promise) await renderTask.promise;
-          } catch { /* non-critical */ }
-        }
-
-        if (textLayerDiv) {
-          textLayerDiv.style.height = `${viewport.height}px`;
-          textLayerDiv.style.width = `${viewport.width}px`;
-        }
-
-        renderedRef.current.add(pageNum);
-      } catch { /* page render can fail, don't block other pages */ }
-
-      renderingRef.current.delete(pageNum);
-    }
-
-    // Render a batch of pages (limited concurrency)
-    async function renderBatch(pageNums: number[]) {
-      const unrendered = pageNums.filter(
-        (n) => !renderedRef.current.has(n) && !renderingRef.current.has(n),
-      );
-      // Render up to 4 at a time
-      for (let i = 0; i < unrendered.length; i += 4) {
-        await Promise.allSettled(unrendered.slice(i, i + 4).map((n) => renderPage(n)));
-      }
-    }
-
-    // Set up IntersectionObserver for lazy page rendering
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const toRender: number[] = [];
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const m = (entry.target as HTMLElement).id.match(/^pdf-page-(\d+)$/);
-            if (m) {
-              const pageNum = parseInt(m[1], 10);
-              if (!renderedRef.current.has(pageNum) && !renderingRef.current.has(pageNum)) {
-                toRender.push(pageNum);
-              }
-            }
-          }
-        }
-        if (toRender.length > 0) renderBatch(toRender);
-      },
-      {
-        root: container,
-        rootMargin: "50% 0px 50% 0px", // Render pages within half viewport ahead
-        threshold: 0,
-      },
-    );
-
-    // Observe all page elements
-    const pageElements = container.querySelectorAll('[id^="pdf-page-"]');
-    pageElements.forEach((el) => observer.observe(el));
-    observerRef.current = observer;
-
-    // Render first page immediately so user sees content
-    renderPage(1);
 
     return () => {
-      observer.disconnect();
-      observerRef.current = null;
+      cancelled = true;
+      // Actively cancel all in-flight render tasks — prevents Chromium from
+      // completing renders on detached canvases which can trigger resource bugs
+      renderTasksRef.current.forEach((t) => t.cancel());
+      renderTasksRef.current = [];
     };
-  }, [loading, pages.length]); // Run when Phase 1 completes
-
-  // Clean up rendered set when data changes (new PDF)
-  useEffect(() => {
-    renderedRef.current = new Set();
-    renderingRef.current = new Set();
-  }, [data]);
+  }, [data, renderGeneration]);
 
   if (error) {
     return <div className="p-4 text-red-500 text-sm">PDF 渲染失败: {error}</div>;
-  }
-
-  if (loading) {
-    return <div className="flex items-center justify-center py-12 text-gray-400 text-sm">正在加载 PDF...</div>;
   }
 
   return (
     <div ref={containerRef} className="pdf-viewer space-y-4">
       <style>{`
         .pdf-text-layer {
-          position: absolute;
-          left: 0;
-          top: 0;
-          overflow: hidden;
-          opacity: 0.2;
-          line-height: 1.0;
-          pointer-events: auto;
+          position: absolute; left: 0; top: 0; overflow: hidden;
+          opacity: 0.2; line-height: 1.0; pointer-events: auto;
         }
         .pdf-text-layer span {
-          color: transparent;
-          position: absolute;
-          white-space: pre;
-          cursor: text;
-          transform-origin: 0% 0%;
+          color: transparent; position: absolute; white-space: pre;
+          cursor: text; transform-origin: 0% 0%;
         }
-        .pdf-text-layer ::selection {
-          background: rgba(0, 0, 180, 0.35);
-        }
-        .pdf-text-layer br {
-          display: none;
-        }
+        .pdf-text-layer ::selection { background: rgba(0, 0, 180, 0.35); }
       `}</style>
-      {pages.map(({ pageNum, canvasRef, textLayerRef, viewportWidth, viewportHeight }) => (
-        <div key={pageNum} id={`pdf-page-${pageNum}`} className="pdf-page shadow-md bg-white mx-auto relative" style={{ maxWidth: "100%" }}>
+      {loading && (
+        <div className="flex items-center justify-center py-12 text-gray-400 text-sm">正在加载 PDF...</div>
+      )}
+      {!loading && pages.map(({ pageNum, canvasRef, textLayerRef, cssWidth, cssHeight }) => (
+        <div key={pageNum} id={`pdf-page-${pageNum}`} className="pdf-page shadow-md bg-white mx-auto" style={{ width: `${cssWidth}px`, maxWidth: "100%" }}>
           <div className="text-xs text-gray-400 text-center py-1 bg-gray-50 border-b">第 {pageNum} 页</div>
-          <div className="relative">
-            <canvas ref={canvasRef} width={viewportWidth} height={viewportHeight} className="block mx-auto" style={{ maxWidth: "100%", height: "auto" }} />
-            <div ref={textLayerRef} className="pdf-text-layer" />
+          <div className="relative" style={{ width: `${cssWidth}px`, height: `${cssHeight}px`, maxWidth: "100%" }}>
+            <canvas
+              ref={canvasRef}
+              className="block mx-auto"
+              style={{ width: `${cssWidth}px`, height: `${cssHeight}px`, maxWidth: "100%" }}
+            />
+            <div ref={textLayerRef} className="pdf-text-layer" style={{ width: `${cssWidth}px`, height: `${cssHeight}px`, maxWidth: "100%" }} />
           </div>
         </div>
       ))}
