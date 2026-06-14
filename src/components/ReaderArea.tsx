@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import type { DocumentMeta } from "../types";
 import { FloatingToolbar } from "./FloatingToolbar";
@@ -27,6 +27,14 @@ export const ReaderArea = React.memo(function ReaderArea({
   const scrollTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [toolbar, setToolbar] = useState<{ visible: boolean; position: { x: number; y: number }; selectedText: string }>({ visible: false, position: { x: 0, y: 0 }, selectedText: "" });
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; position: { x: number; y: number }; selectedText: string }>({ visible: false, position: { x: 0, y: 0 }, selectedText: "" });
+
+  // Set innerHTML imperatively outside React's virtual DOM to avoid re-diffing
+  // large Word document HTML on every toolbar/context-menu state change.
+  useLayoutEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.innerHTML = DOMPurify.sanitize(htmlContent);
+    }
+  }, [htmlContent]);
 
   const getSelectionInfo = useCallback(() => {
     const selection = window.getSelection();
@@ -62,15 +70,11 @@ export const ReaderArea = React.memo(function ReaderArea({
     }
   }, []);
 
-  const closeToolbar = useCallback(() => setToolbar((prev) => ({ ...prev, visible: false })), []);
-  const closeContextMenu = useCallback(() => setContextMenu((prev) => ({ ...prev, visible: false })), []);
-
-  // Memoize sanitized HTML — DOMPurify is expensive on large documents (e.g. Word)
-  // and re-running it on every toolbar/context-menu state change causes visual jitter.
-  const sanitizedHtml = useMemo(() => DOMPurify.sanitize(htmlContent), [htmlContent]);
+  // Only update state when visible actually changes — prevents unnecessary re-renders
+  const closeToolbar = useCallback(() => setToolbar((prev) => (prev.visible ? { ...prev, visible: false } : prev)), []);
+  const closeContextMenu = useCallback(() => setContextMenu((prev) => (prev.visible ? { ...prev, visible: false } : prev)), []);
 
   const handleContainerClick = useCallback((_e: React.MouseEvent) => {
-    // Only close toolbar if clicking outside any text selection
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) {
       closeToolbar();
@@ -82,7 +86,6 @@ export const ReaderArea = React.memo(function ReaderArea({
     const { scrollHeight, clientHeight } = contentRef.current;
     if (scrollHeight <= clientHeight) return;
 
-    // Throttle scroll position updates to every 500ms to prevent re-render jitter
     if (scrollTimerRef.current) return;
     scrollTimerRef.current = setTimeout(() => {
       scrollTimerRef.current = null;
@@ -109,7 +112,6 @@ export const ReaderArea = React.memo(function ReaderArea({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // Find the topmost visible heading
         const visibleHeadings = entries
           .filter((e) => e.isIntersecting)
           .map((e) => ({
@@ -124,12 +126,11 @@ export const ReaderArea = React.memo(function ReaderArea({
       },
       {
         root: container,
-        rootMargin: "-10% 0px -70% 0px", // Top 10% zone triggers heading change
+        rootMargin: "-10% 0px -70% 0px",
         threshold: 0,
       },
     );
 
-    // Observe all heading elements with IDs
     const headings = container.querySelectorAll("h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]");
     headings.forEach((h) => observer.observe(h));
 
@@ -148,9 +149,7 @@ export const ReaderArea = React.memo(function ReaderArea({
 
   return (
     <div className="relative h-full overflow-hidden" onClick={handleContainerClick}>
-      <div ref={contentRef} className="h-full overflow-y-auto px-8 py-6" onMouseUp={handleMouseUp} onContextMenu={handleContextMenu} onScroll={handleScroll}>
-        <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
-      </div>
+      <div ref={contentRef} className="h-full overflow-y-auto px-8 py-6 prose prose-sm dark:prose-invert max-w-none" onMouseUp={handleMouseUp} onContextMenu={handleContextMenu} onScroll={handleScroll} />
       <FloatingToolbar visible={toolbar.visible} position={toolbar.position} onAskAI={() => { onAskAI(toolbar.selectedText); closeToolbar(); }} onTakeNote={() => { onTakeNote(toolbar.selectedText); closeToolbar(); }} onExplain={() => { onExplain(toolbar.selectedText); closeToolbar(); }} />
       <ContextMenu visible={contextMenu.visible} position={contextMenu.position} onClose={closeContextMenu} onAskAI={() => onAskAI(contextMenu.selectedText)} onTranslate={() => onTranslate(contextMenu.selectedText)} onSummarize={() => onSummarize(contextMenu.selectedText)} />
     </div>
