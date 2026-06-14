@@ -61,7 +61,7 @@ export function AIPanel({ conversation, hasApiKey, onSendMessage, onNewConversat
       <ChatInput
         contexts={contexts}
         onAddContext={(ctx) => setContexts((prev) => [...prev, ctx])}
-        onRemoveContext={(id) => setContexts((prev) => prev.filter((c) => c.id !== id))}
+        onRemoveContext={(id) => { console.log("AIPanel onRemoveContext called, id:", id); setContexts((prev) => { console.log("setContexts filtering, prev:", prev, "removing:", id); return prev.filter((c) => c.id !== id); }); }}
         onSend={handleSend}
         disabled={isLoading}
       />
