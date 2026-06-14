@@ -40,8 +40,9 @@ function AppInner() {
       // Clone buffer for safe storage — parseDocument/pdf.js may transfer the original
       const contentClone = content.slice(0);
       const result = await parseDocument(content, format as any);
-      const sourceForOutline = format === "md" ? result.rawText : result.html;
-      const newOutline = extractOutline(sourceForOutline, format as any);
+      // Use PDF built-in outline if available, otherwise extract from HTML/Markdown
+      const newOutline = result.pdfOutline
+        ?? extractOutline(format === "md" ? result.rawText : result.html, format as any);
 
       // Store in cache
       const docContent: DocContent = {

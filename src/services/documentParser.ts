@@ -19,10 +19,16 @@ export function detectFormat(fileName: string): DocumentFormat {
   }
 }
 
+export interface ParseResult {
+  html: string;
+  rawText: string;
+  pdfOutline?: OutlineNode[];
+}
+
 export async function parseDocument(
   content: ArrayBuffer | string,
   format: DocumentFormat,
-): Promise<{ html: string; rawText: string }> {
+): Promise<ParseResult> {
   switch (format) {
     case "txt": {
       const text = (typeof content === "string"
@@ -90,7 +96,46 @@ export async function parseDocument(
         }
 
         const html = addHeadingIds(`<div class="pdf-viewer">${htmlParts.join("\n")}</div>`);
-        return { html, rawText: fullText };
+
+        // Extract PDF built-in outline (bookmarks/table of contents)
+        let pdfOutline: OutlineNode[] | undefined;
+        try {
+          const rawOutline = await pdf.getOutline();
+          if (rawOutline && rawOutline.length > 0) {
+            let nodeId = 0;
+            const slugCounts = new Map<string, number>();
+
+            function convertOutlineItems(items: typeof rawOutline): OutlineNode[] {
+              return items.map((item) => {
+                const id = `outline-${nodeId++}`;
+                const slug = slugify(item.title);
+                const count = slugCounts.get(slug) ?? 0;
+                slugCounts.set(slug, count + 1);
+                const anchorId =
+                  count === 0 ? `heading-${slug}` : `heading-${slug}-${count + 1}`;
+
+                return {
+                  id,
+                  title: item.title,
+                  level: 1, // Top-level outline items; children will be nested
+                  children: item.items && item.items.length > 0
+                    ? convertOutlineItems(item.items).map((child) => ({
+                        ...child,
+                        level: 2,
+                      }))
+                    : [],
+                  anchorId,
+                };
+              });
+            }
+
+            pdfOutline = convertOutlineItems(rawOutline);
+          }
+        } catch {
+          // PDF has no outline — that's fine, outline panel will just show empty
+        }
+
+        return { html, rawText: fullText, pdfOutline };
       } catch (err) {
         throw new Error(`PDF 解析失败: ${err instanceof Error ? err.message : "未知错误"}`);
       }
