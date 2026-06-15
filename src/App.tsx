@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { AppShell } from "./components/AppShell";
 import { IconRail, type ViewType } from "./components/IconRail";
 import { Titlebar } from "./components/Titlebar";
+import { DocumentTabBar } from "./components/DocumentTabBar";
 import { Sidebar } from "./components/Sidebar";
 import { ReaderArea } from "./components/ReaderArea";
 import { AIPanel } from "./components/AIPanel";
@@ -186,15 +187,20 @@ function AppInner() {
             onOpenSettings={() => setSettingsOpen(true)}
           />
         }
+        tabBar={
+          <DocumentTabBar
+            documents={ctx.documents}
+            activeDocumentId={ctx.activeDocumentId}
+            onSelectDocument={ctx.setActiveDocumentId}
+            onCloseDocument={ctx.closeDocument}
+            onOpenFile={handleOpenFile}
+          />
+        }
         iconRail={
           <IconRail activeView={activeView} onViewChange={handleViewChange} />
         }
         sidebar={
           <Sidebar
-            documents={ctx.documents}
-            activeDocumentId={ctx.activeDocumentId}
-            onSelectDocument={ctx.setActiveDocumentId}
-            onCloseDocument={ctx.closeDocument}
             outline={activeContent?.outline || []}
             activeHeadingId={activeHeadingId}
             onNavigate={(anchorId) => {

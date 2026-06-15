@@ -36,13 +36,6 @@ export function Titlebar({ fileName, format, pageInfo, isSaved, onOpenSettings }
         borderBottom: "0.5px solid var(--border-subtle)",
       }}
     >
-      {/* Traffic light dots (visual only, macOS-style) */}
-      <div className="flex gap-1.5 mr-1">
-        <span className="w-3.5 h-3.5 rounded-full bg-[#FF5F57]" />
-        <span className="w-3.5 h-3.5 rounded-full bg-[#FFBD2E]" />
-        <span className="w-3.5 h-3.5 rounded-full bg-[#28CA41]" />
-      </div>
-
       {fileName ? (
         <>
           <FormatIcon size={14} strokeWidth={1.8} color={iconColor} />

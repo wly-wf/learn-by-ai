@@ -1,32 +1,14 @@
 import { useState } from "react";
-import { Search, FileText, FileType, FileType2, Plus, FolderOpen, X } from "lucide-react";
-import type { DocumentMeta, OutlineNode } from "../types";
+import { Search, Plus, FolderOpen } from "lucide-react";
+import type { OutlineNode } from "../types";
 
 interface SidebarProps {
-  documents: DocumentMeta[];
-  activeDocumentId: string | null;
-  onSelectDocument: (id: string) => void;
-  onCloseDocument: (id: string) => void;
   outline: OutlineNode[];
   activeHeadingId: string | null;
   onNavigate: (anchorId: string) => void;
   onOpenFile: () => void;
   onImportFolder?: () => void;
 }
-
-const formatIcons: Record<string, typeof FileText> = {
-  txt: FileText,
-  md: FileText,
-  pdf: FileType,
-  docx: FileType2,
-};
-
-const formatColors: Record<string, string> = {
-  txt: "#86868B",
-  md: "#F59E0B",
-  pdf: "#EF4444",
-  docx: "#3B82F6",
-};
 
 function OutlineItem({
   node,
@@ -89,10 +71,6 @@ function OutlineItem({
 }
 
 export function Sidebar({
-  documents,
-  activeDocumentId,
-  onSelectDocument,
-  onCloseDocument,
   outline,
   activeHeadingId,
   onNavigate,
@@ -136,55 +114,6 @@ export function Sidebar({
           >
             <FolderOpen size={14} strokeWidth={1.8} /> 导入
           </button>
-        )}
-      </div>
-
-      {/* Document List */}
-      <div className="mb-3">
-        <div
-          className="text-[11px] uppercase font-semibold tracking-[0.5px] px-1 mb-1"
-          style={{ color: "var(--text-tertiary)" }}
-        >
-          文档
-        </div>
-        {documents.length === 0 ? (
-          <div
-            className="text-[12px] py-2 text-center"
-            style={{ color: "var(--text-tertiary)" }}
-          >
-            暂无文档
-          </div>
-        ) : (
-          documents.map((doc) => {
-            const FormatIcon = formatIcons[doc.format] || FileText;
-            const iconColor = formatColors[doc.format] || "#86868B";
-            const isActive = doc.id === activeDocumentId;
-
-            return (
-              <div
-                key={doc.id}
-                onClick={() => onSelectDocument(doc.id)}
-                className="flex items-center gap-1.5 text-[13px] rounded-[5px] cursor-pointer group py-1.5 px-1.5"
-                style={{
-                  color: isActive ? "white" : iconColor,
-                  background: isActive ? "var(--accent)" : "transparent",
-                }}
-              >
-                <FormatIcon size={14} strokeWidth={1.8} />
-                <span className="truncate flex-1">{doc.fileName}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCloseDocument(doc.id);
-                  }}
-                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-black/10 transition-opacity"
-                  aria-label={`关闭 ${doc.fileName}`}
-                >
-                  <X size={12} strokeWidth={1.8} />
-                </button>
-              </div>
-            );
-          })
         )}
       </div>
 
