@@ -179,13 +179,7 @@ function AppInner() {
         aiDrawerWidth={aiDrawerWidth}
         onSidebarWidthChange={setSidebarWidth}
         onAiDrawerWidthChange={setAiDrawerWidth}
-        titlebar={
-          <Titlebar
-            fileName={activeDoc?.fileName}
-            format={activeDoc?.format}
-            isSaved={!!activeDoc}
-          />
-        }
+        titlebar={<Titlebar />}
         tabBar={
           <DocumentTabBar
             documents={ctx.documents}
