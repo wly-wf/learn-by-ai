@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { AppShell } from "./components/AppShell";
 import { IconRail, type ViewType } from "./components/IconRail";
-import { Titlebar } from "./components/Titlebar";
 import { DocumentTabBar } from "./components/DocumentTabBar";
 import { Sidebar } from "./components/Sidebar";
 import { ReaderArea } from "./components/ReaderArea";
@@ -179,7 +178,6 @@ function AppInner() {
         aiDrawerWidth={aiDrawerWidth}
         onSidebarWidthChange={setSidebarWidth}
         onAiDrawerWidthChange={setAiDrawerWidth}
-        titlebar={<Titlebar />}
         tabBar={
           <DocumentTabBar
             documents={ctx.documents}

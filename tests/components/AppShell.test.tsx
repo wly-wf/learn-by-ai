@@ -6,7 +6,6 @@ describe("AppShell", () => {
   it("renders tabBar when provided", () => {
     render(
       <AppShell
-        titlebar={<div>t</div>}
         tabBar={<div data-testid="tabbar">tabs</div>}
         iconRail={<div>r</div>}
         sidebar={null}
@@ -24,7 +23,6 @@ describe("AppShell", () => {
   it("renders all layout slots when sidebar and drawer are visible", () => {
     render(
       <AppShell
-        titlebar={<div data-testid="titlebar">titlebar</div>}
         iconRail={<div data-testid="icon-rail">rail</div>}
         sidebar={<div data-testid="sidebar">sidebar</div>}
         readerArea={<div data-testid="reader">reader</div>}
@@ -35,7 +33,6 @@ describe("AppShell", () => {
         aiDrawerWidth={285}
       />
     );
-    expect(screen.getByTestId("titlebar")).toBeDefined();
     expect(screen.getByTestId("icon-rail")).toBeDefined();
     expect(screen.getByTestId("sidebar")).toBeDefined();
     expect(screen.getByTestId("reader")).toBeDefined();
@@ -45,7 +42,6 @@ describe("AppShell", () => {
   it("hides sidebar when showSidebar is false", () => {
     render(
       <AppShell
-        titlebar={<div>t</div>}
         iconRail={<div>r</div>}
         sidebar={<div data-testid="sidebar">s</div>}
         readerArea={<div>rd</div>}
@@ -62,7 +58,6 @@ describe("AppShell", () => {
   it("hides AI drawer when showAiDrawer is false", () => {
     render(
       <AppShell
-        titlebar={<div>t</div>}
         iconRail={<div>r</div>}
         sidebar={<div>s</div>}
         readerArea={<div data-testid="reader">rd</div>}
@@ -79,7 +74,6 @@ describe("AppShell", () => {
   it("renders only icon rail and reader as visible", () => {
     render(
       <AppShell
-        titlebar={<div data-testid="titlebar">t</div>}
         iconRail={<div data-testid="icon-rail">r</div>}
         sidebar={null}
         readerArea={<div data-testid="reader">rd</div>}
@@ -90,7 +84,6 @@ describe("AppShell", () => {
         aiDrawerWidth={285}
       />
     );
-    expect(screen.getByTestId("titlebar")).toBeDefined();
     expect(screen.getByTestId("icon-rail")).toBeDefined();
     expect(screen.getByTestId("reader")).toBeDefined();
   });
