@@ -3,23 +3,6 @@ import { render, screen } from "@testing-library/react";
 import { AppShell } from "../../src/components/AppShell";
 
 describe("AppShell", () => {
-  it("renders tabBar when provided", () => {
-    render(
-      <AppShell
-        tabBar={<div data-testid="tabbar">tabs</div>}
-        iconRail={<div>r</div>}
-        sidebar={null}
-        readerArea={<div>rd</div>}
-        aiDrawer={null}
-        showSidebar={false}
-        showAiDrawer={false}
-        sidebarWidth={195}
-        aiDrawerWidth={285}
-      />
-    );
-    expect(screen.getByTestId("tabbar")).toBeDefined();
-  });
-
   it("renders all layout slots when sidebar and drawer are visible", () => {
     render(
       <AppShell

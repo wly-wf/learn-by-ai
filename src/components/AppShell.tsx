@@ -1,7 +1,6 @@
 import React, { useCallback, useRef } from "react";
 
 interface AppShellProps {
-  tabBar?: React.ReactNode;
   iconRail: React.ReactNode;
   sidebar: React.ReactNode;
   readerArea: React.ReactNode;
@@ -15,7 +14,6 @@ interface AppShellProps {
 }
 
 export function AppShell({
-  tabBar,
   iconRail,
   sidebar,
   readerArea,
@@ -90,8 +88,6 @@ export function AppShell({
 
   return (
     <div className="flex flex-col h-screen" style={{ background: "var(--bg-app)" }}>
-      {tabBar}
-
       <div className="flex flex-1 overflow-hidden">
         {iconRail}
 

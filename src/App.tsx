@@ -178,15 +178,6 @@ function AppInner() {
         aiDrawerWidth={aiDrawerWidth}
         onSidebarWidthChange={setSidebarWidth}
         onAiDrawerWidthChange={setAiDrawerWidth}
-        tabBar={
-          <DocumentTabBar
-            documents={ctx.documents}
-            activeDocumentId={ctx.activeDocumentId}
-            onSelectDocument={ctx.setActiveDocumentId}
-            onCloseDocument={ctx.closeDocument}
-            onOpenFile={handleOpenFile}
-          />
-        }
         iconRail={
           <IconRail activeView={activeView} onViewChange={handleViewChange} onOpenSettings={() => setSettingsOpen(true)} />
         }
@@ -204,34 +195,45 @@ function AppInner() {
           />
         }
         readerArea={
-          !activeDoc ? (
-            <div className="flex flex-col items-center justify-center h-full" style={{ color: "var(--text-secondary)" }}>
-              <span className="text-3xl mb-3 opacity-60">📖</span>
-              <span className="text-[14px]">打开一个文档开始阅读</span>
-              <span className="text-[13px] mt-1 opacity-60">支持 PDF、Word、Markdown、TXT</span>
-            </div>
-          ) : activeDoc.format === "pdf" ? (
-            activeContent?.pdfBuffer ? (
-              <PdfReaderWrapper
-                key={ctx.activeDocumentId}
-                data={activeContent.pdfBuffer}
-                outline={activeContent.outline}
-                onActiveHeadingChange={setActiveHeadingId}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-sm" style={{ color: "var(--text-secondary)" }}>正在解析 PDF...</div>
-            )
-          ) : (
-            <ReaderArea document={activeDoc} htmlContent={activeContent?.html || ""}
-              onAskAI={handleAskAI}
-              onTakeNote={(text) => handleAskAI(text)}
-              onExplain={(text) => handleAskAI(text)}
-              onTranslate={(text) => handleAskAI(text)}
-              onSummarize={(text) => handleAskAI(text)}
-              onScrollPositionChange={handleScrollChange}
-              onActiveHeadingChange={setActiveHeadingId}
+          <div className="flex flex-col h-full">
+            <DocumentTabBar
+              documents={ctx.documents}
+              activeDocumentId={ctx.activeDocumentId}
+              onSelectDocument={ctx.setActiveDocumentId}
+              onCloseDocument={ctx.closeDocument}
+              onOpenFile={handleOpenFile}
             />
-          )
+            <div className="flex-1 overflow-hidden">
+              {!activeDoc ? (
+                <div className="flex flex-col items-center justify-center h-full" style={{ color: "var(--text-secondary)" }}>
+                  <span className="text-3xl mb-3 opacity-60">📖</span>
+                  <span className="text-[14px]">打开一个文档开始阅读</span>
+                  <span className="text-[13px] mt-1 opacity-60">支持 PDF、Word、Markdown、TXT</span>
+                </div>
+              ) : activeDoc.format === "pdf" ? (
+                activeContent?.pdfBuffer ? (
+                  <PdfReaderWrapper
+                    key={ctx.activeDocumentId}
+                    data={activeContent.pdfBuffer}
+                    outline={activeContent.outline}
+                    onActiveHeadingChange={setActiveHeadingId}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-sm" style={{ color: "var(--text-secondary)" }}>正在解析 PDF...</div>
+                )
+              ) : (
+                <ReaderArea document={activeDoc} htmlContent={activeContent?.html || ""}
+                  onAskAI={handleAskAI}
+                  onTakeNote={(text) => handleAskAI(text)}
+                  onExplain={(text) => handleAskAI(text)}
+                  onTranslate={(text) => handleAskAI(text)}
+                  onSummarize={(text) => handleAskAI(text)}
+                  onScrollPositionChange={handleScrollChange}
+                  onActiveHeadingChange={setActiveHeadingId}
+                />
+              )}
+            </div>
+          </div>
         }
         aiDrawer={showAiDrawer ? (
           <AIPanel conversation={ctx.conversation} hasApiKey={ctx.hasApiKey}
