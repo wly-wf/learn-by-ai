@@ -141,8 +141,8 @@ export const ReaderArea = React.memo(function ReaderArea({
     return (
       <div className="flex flex-col items-center justify-center h-full" style={{ color: "var(--text-secondary)" }}>
         <span className="text-3xl mb-3 opacity-60">📖</span>
-        <span className="text-[11px]">打开一个文档开始阅读</span>
-        <span className="text-[10px] mt-1 opacity-60">支持 PDF、Word、Markdown、TXT</span>
+        <span className="text-[14px]">打开一个文档开始阅读</span>
+        <span className="text-[13px] mt-1 opacity-60">支持 PDF、Word、Markdown、TXT</span>
       </div>
     );
   }
@@ -154,7 +154,7 @@ export const ReaderArea = React.memo(function ReaderArea({
         style={{
           background: "var(--bg-card)",
           borderRadius: "12px",
-          padding: "28px 32px",
+          padding: "36px 40px",
           boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.04)",
         }}
         onMouseUp={handleMouseUp}

@@ -11,7 +11,7 @@ interface FloatingToolbarProps {
 export function FloatingToolbar({ visible, position, onAskAI, onTakeNote, onExplain }: FloatingToolbarProps) {
   if (!visible) return null;
 
-  const btnClass = "flex items-center gap-1.5 text-[9px] px-2 py-1 rounded-[6px] transition-colors";
+  const btnClass = "flex items-center gap-1.5 text-[12px] px-2 py-1 rounded-[6px] transition-colors";
 
   return (
     <div
@@ -26,15 +26,15 @@ export function FloatingToolbar({ visible, position, onAskAI, onTakeNote, onExpl
     >
       <button onClick={onAskAI} className={btnClass}
         style={{ color: "white", background: "rgba(255,255,255,0.15)" }}>
-        <MessageSquare size={11} strokeWidth={1.8} /> 追问
+        <MessageSquare size={13} strokeWidth={1.8} /> 追问
       </button>
       <button onClick={onExplain} className={btnClass}
         style={{ color: "rgba(255,255,255,0.65)" }}>
-        <MapPin size={11} strokeWidth={1.8} /> 解释
+        <MapPin size={13} strokeWidth={1.8} /> 解释
       </button>
       <button onClick={onTakeNote} className={btnClass}
         style={{ color: "rgba(255,255,255,0.65)" }}>
-        <FileText size={11} strokeWidth={1.8} /> 笔记
+        <FileText size={13} strokeWidth={1.8} /> 笔记
       </button>
     </div>
   );

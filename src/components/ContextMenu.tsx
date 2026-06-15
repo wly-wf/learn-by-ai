@@ -12,7 +12,7 @@ interface ContextMenuProps {
 
 const menuItemStyle = {
   color: "rgba(255,255,255,0.8)",
-  fontSize: "10px",
+  fontSize: "13px",
   padding: "4px 8px",
   borderRadius: "5px",
   display: "flex",
@@ -56,7 +56,7 @@ export function ContextMenu({ visible, position, onClose, onAskAI, onTranslate, 
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
       >
-        <MessageSquare size={11} strokeWidth={1.8} /> 追问
+        <MessageSquare size={13} strokeWidth={1.8} /> 追问
       </button>
       <button
         onClick={() => { onTranslate(); onClose(); }}
@@ -64,7 +64,7 @@ export function ContextMenu({ visible, position, onClose, onAskAI, onTranslate, 
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
       >
-        <Globe size={11} strokeWidth={1.8} /> 翻译
+        <Globe size={13} strokeWidth={1.8} /> 翻译
       </button>
       <button
         onClick={() => { onSummarize(); onClose(); }}
@@ -72,7 +72,7 @@ export function ContextMenu({ visible, position, onClose, onAskAI, onTranslate, 
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
       >
-        <FileText size={11} strokeWidth={1.8} /> 总结
+        <FileText size={13} strokeWidth={1.8} /> 总结
       </button>
     </div>
   );

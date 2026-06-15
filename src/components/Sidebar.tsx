@@ -51,7 +51,7 @@ function OutlineItem({
           if (hasChildren) setExpanded(!expanded);
           if (node.anchorId) onNavigate(node.anchorId);
         }}
-        className="flex items-center gap-1 text-[10px] rounded-[5px] cursor-pointer select-none py-1"
+        className="flex items-center gap-1 text-[13px] rounded-[5px] cursor-pointer select-none py-1.5"
         style={{
           paddingLeft: `${paddingLeft}px`,
           paddingRight: "6px",
@@ -65,7 +65,7 @@ function OutlineItem({
         }}
       >
         {hasChildren ? (
-          <span className="text-[8px] w-3 text-center flex-shrink-0">
+          <span className="text-[11px] w-3 text-center flex-shrink-0">
             {expanded ? "▾" : "▸"}
           </span>
         ) : (
@@ -113,8 +113,8 @@ export function Sidebar({
         className="flex items-center gap-1.5 rounded-[7px] px-2 py-1.5 mb-3"
         style={{ background: "rgba(0,0,0,0.03)" }}
       >
-        <Search size={12} strokeWidth={1.8} color="var(--text-tertiary)" />
-        <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
+        <Search size={14} strokeWidth={1.8} color="var(--text-tertiary)" />
+        <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
           搜索文档...
         </span>
       </div>
@@ -123,18 +123,18 @@ export function Sidebar({
       <div className="flex gap-1 mb-3">
         <button
           onClick={onOpenFile}
-          className="flex items-center gap-1 px-2 py-1 text-[10px] rounded-md hover:bg-black/5 transition-colors flex-1"
+          className="flex items-center gap-1 px-2 py-1 text-[12px] rounded-md hover:bg-black/5 transition-colors flex-1"
           style={{ color: "var(--text-secondary)" }}
         >
-          <Plus size={11} strokeWidth={1.8} /> 打开
+          <Plus size={14} strokeWidth={1.8} /> 打开
         </button>
         {onImportFolder && (
           <button
             onClick={onImportFolder}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] rounded-md hover:bg-black/5 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-[12px] rounded-md hover:bg-black/5 transition-colors"
             style={{ color: "var(--text-secondary)" }}
           >
-            <FolderOpen size={11} strokeWidth={1.8} /> 导入
+            <FolderOpen size={14} strokeWidth={1.8} /> 导入
           </button>
         )}
       </div>
@@ -142,14 +142,14 @@ export function Sidebar({
       {/* Document List */}
       <div className="mb-3">
         <div
-          className="text-[8px] uppercase font-semibold tracking-[0.5px] px-1 mb-1"
+          className="text-[11px] uppercase font-semibold tracking-[0.5px] px-1 mb-1"
           style={{ color: "var(--text-tertiary)" }}
         >
           文档
         </div>
         {documents.length === 0 ? (
           <div
-            className="text-[10px] py-2 text-center"
+            className="text-[12px] py-2 text-center"
             style={{ color: "var(--text-tertiary)" }}
           >
             暂无文档
@@ -164,13 +164,13 @@ export function Sidebar({
               <div
                 key={doc.id}
                 onClick={() => onSelectDocument(doc.id)}
-                className="flex items-center gap-1.5 text-[10px] rounded-[5px] cursor-pointer group py-1 px-1.5"
+                className="flex items-center gap-1.5 text-[13px] rounded-[5px] cursor-pointer group py-1.5 px-1.5"
                 style={{
                   color: isActive ? "white" : iconColor,
                   background: isActive ? "var(--accent)" : "transparent",
                 }}
               >
-                <FormatIcon size={12} strokeWidth={1.8} />
+                <FormatIcon size={14} strokeWidth={1.8} />
                 <span className="truncate flex-1">{doc.fileName}</span>
                 <button
                   onClick={(e) => {
@@ -180,7 +180,7 @@ export function Sidebar({
                   className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-black/10 transition-opacity"
                   aria-label={`关闭 ${doc.fileName}`}
                 >
-                  <X size={10} strokeWidth={1.8} />
+                  <X size={12} strokeWidth={1.8} />
                 </button>
               </div>
             );
@@ -191,14 +191,14 @@ export function Sidebar({
       {/* Outline */}
       <div>
         <div
-          className="text-[8px] uppercase font-semibold tracking-[0.5px] px-1 mb-1"
+          className="text-[11px] uppercase font-semibold tracking-[0.5px] px-1 mb-1"
           style={{ color: "var(--text-tertiary)" }}
         >
           大纲
         </div>
         {outline.length === 0 ? (
           <div
-            className="text-[10px] py-2 text-center"
+            className="text-[12px] py-2 text-center"
             style={{ color: "var(--text-tertiary)" }}
           >
             暂无大纲

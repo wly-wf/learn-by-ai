@@ -51,19 +51,19 @@ export function AIPanel({ conversation, hasApiKey, onSendMessage, onNewConversat
       <div className="flex flex-col h-full" style={panelStyle}>
         <div className="flex items-center justify-between px-3.5 py-2.5 border-b" style={{ borderColor: "rgba(0,0,0,0.04)" }}>
           <div className="flex items-center gap-1.5">
-            <Sparkles size={14} strokeWidth={1.8} color="var(--accent)" />
-            <span className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>AI 对话</span>
+            <Sparkles size={16} strokeWidth={1.8} color="var(--accent)" />
+            <span className="text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>AI 对话</span>
           </div>
           {onClose && (
             <button onClick={onClose} className="p-1 rounded hover:bg-black/5 transition-colors" aria-label="关闭 AI 面板">
-              <X size={13} strokeWidth={1.8} color="var(--text-secondary)" />
+              <X size={15} strokeWidth={1.8} color="var(--text-secondary)" />
             </button>
           )}
         </div>
         <div className="flex-1 flex flex-col items-center justify-center p-4" style={{ color: "var(--text-secondary)" }}>
           <span className="text-lg mb-2 opacity-50">🔑</span>
-          <span className="text-[10px] text-center">请先在设置中配置 AI 服务</span>
-          <span className="text-[9px] mt-1 opacity-60 text-center">点击右上角 ⚙️ 添加 API Key</span>
+          <span className="text-[13px] text-center">请先在设置中配置 AI 服务</span>
+          <span className="text-[12px] mt-1 opacity-60 text-center">点击右上角 ⚙️ 添加 API Key</span>
         </div>
         <ChatInput contexts={contexts} onAddContext={addContext} onRemoveContext={removeContext} onSend={() => {}} disabled={true} />
       </div>
@@ -74,16 +74,16 @@ export function AIPanel({ conversation, hasApiKey, onSendMessage, onNewConversat
     <div className="flex flex-col h-full" style={panelStyle}>
       <div className="flex items-center justify-between px-3.5 py-2.5 border-b" style={{ borderColor: "rgba(0,0,0,0.04)" }}>
         <div className="flex items-center gap-1.5">
-          <Sparkles size={14} strokeWidth={1.8} color="var(--accent)" />
-          <span className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>AI 对话</span>
+          <Sparkles size={16} strokeWidth={1.8} color="var(--accent)" />
+          <span className="text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>AI 对话</span>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={onNewConversation} className="p-1 rounded hover:bg-black/5 transition-colors" title="新对话" aria-label="新对话">
-            <Plus size={13} strokeWidth={1.8} color="var(--text-secondary)" />
+            <Plus size={15} strokeWidth={1.8} color="var(--text-secondary)" />
           </button>
           {onClose && (
             <button onClick={onClose} className="p-1 rounded hover:bg-black/5 transition-colors" aria-label="关闭 AI 面板">
-              <X size={13} strokeWidth={1.8} color="var(--text-secondary)" />
+              <X size={15} strokeWidth={1.8} color="var(--text-secondary)" />
             </button>
           )}
         </div>
@@ -91,7 +91,7 @@ export function AIPanel({ conversation, hasApiKey, onSendMessage, onNewConversat
       <ChatMessages messages={conversation?.messages || []} />
       {isLoading && (
         <div className="px-3 py-1">
-          <span className="text-[10px] animate-pulse" style={{ color: "var(--text-secondary)" }}>AI 思考中...</span>
+          <span className="text-[12px] animate-pulse" style={{ color: "var(--text-secondary)" }}>AI 思考中...</span>
         </div>
       )}
       <ChatInput

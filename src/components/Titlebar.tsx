@@ -29,7 +29,7 @@ export function Titlebar({ fileName, format, pageInfo, isSaved, onOpenSettings }
 
   return (
     <div
-      className="flex items-center h-[38px] px-3 gap-2.5 flex-shrink-0 select-none"
+      className="flex items-center h-[44px] px-3 gap-2.5 flex-shrink-0 select-none"
       style={{
         background: "var(--bg-sidebar)",
         backdropFilter: "blur(20px)",
@@ -38,23 +38,23 @@ export function Titlebar({ fileName, format, pageInfo, isSaved, onOpenSettings }
     >
       {/* Traffic light dots (visual only, macOS-style) */}
       <div className="flex gap-1.5 mr-1">
-        <span className="w-3 h-3 rounded-full bg-[#FF5F57]" />
-        <span className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
-        <span className="w-3 h-3 rounded-full bg-[#28CA41]" />
+        <span className="w-3.5 h-3.5 rounded-full bg-[#FF5F57]" />
+        <span className="w-3.5 h-3.5 rounded-full bg-[#FFBD2E]" />
+        <span className="w-3.5 h-3.5 rounded-full bg-[#28CA41]" />
       </div>
 
       {fileName ? (
         <>
           <FormatIcon size={14} strokeWidth={1.8} color={iconColor} />
           <span
-            className="text-[11px] font-medium truncate max-w-[200px]"
+            className="text-[14px] font-medium truncate max-w-[200px]"
             style={{ color: "var(--text-primary)" }}
           >
             {fileName}
           </span>
           {isSaved && (
             <span
-              className="text-[9px] px-1.5 py-px rounded-[10px] font-medium flex-shrink-0"
+              className="text-[11px] px-1.5 py-px rounded-[10px] font-medium flex-shrink-0"
               style={{ background: "var(--accent-subtle)", color: "var(--accent)" }}
             >
               已保存
@@ -62,7 +62,7 @@ export function Titlebar({ fileName, format, pageInfo, isSaved, onOpenSettings }
           )}
         </>
       ) : (
-        <span className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>
+        <span className="text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>
           LearnByAI
         </span>
       )}
@@ -70,7 +70,7 @@ export function Titlebar({ fileName, format, pageInfo, isSaved, onOpenSettings }
       <div className="flex-1" />
 
       {pageInfo && (
-        <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
           {pageInfo}
         </span>
       )}

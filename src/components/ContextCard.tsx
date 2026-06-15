@@ -19,11 +19,11 @@ export function ContextCard({ context, onRemove }: ContextCardProps) {
       alignItems: "flex-start",
       gap: "6px",
     }}>
-      <Link size={11} strokeWidth={1.8} color="var(--accent)" style={{ flexShrink: 0, marginTop: 1 }} />
+      <Link size={13} strokeWidth={1.8} color="var(--accent)" style={{ flexShrink: 0, marginTop: 1 }} />
       {isImage ? (
         <img src={context.content} alt={context.label} style={{ maxHeight: "40px", borderRadius: "4px", objectFit: "cover" }} />
       ) : (
-        <span style={{ flex: 1, fontSize: "9px", color: "var(--text-primary)", lineHeight: 1.4 }}>
+        <span style={{ flex: 1, fontSize: "12px", color: "var(--text-primary)", lineHeight: 1.4 }}>
           {context.content}
         </span>
       )}
@@ -32,7 +32,7 @@ export function ContextCard({ context, onRemove }: ContextCardProps) {
         className="flex-shrink-0 p-0.5 rounded hover:bg-black/5 transition-colors"
         aria-label={`移除 ${context.label}`}
       >
-        <X size={11} strokeWidth={1.8} color="var(--text-tertiary)" />
+        <X size={13} strokeWidth={1.8} color="var(--text-tertiary)" />
       </button>
     </div>
   );

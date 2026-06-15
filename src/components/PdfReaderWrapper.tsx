@@ -81,7 +81,7 @@ export function PdfReaderWrapper({ data, outline, onActiveHeadingChange }: PdfRe
         background: "var(--bg-card)",
         borderRadius: "12px",
         boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.04)",
-        padding: "16px",
+        padding: "20px",
         maxWidth: "800px",
         margin: "0 auto",
       }}>
