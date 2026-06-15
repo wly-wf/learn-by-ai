@@ -1,3 +1,4 @@
+import { Link, X } from "lucide-react";
 import type { ContextRef } from "../types";
 
 interface ContextCardProps {
@@ -9,24 +10,29 @@ export function ContextCard({ context, onRemove }: ContextCardProps) {
   const isImage = context.type === "image";
 
   return (
-    <div className={`flex items-start gap-2 px-2.5 py-1.5 rounded-md border text-xs ${isImage ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700" : "bg-yellow-50 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700"}`}>
-      <span className="flex-shrink-0 mt-0.5">{isImage ? "🖼️" : "📌"}</span>
-      <div className="flex-1 min-w-0">
-        {isImage ? (
-          <div className="flex items-center gap-2">
-            <img src={context.content} alt="截图" className="h-10 rounded border border-gray-200 object-cover" />
-            <span className="text-gray-600 dark:text-gray-400 truncate text-[10px]">{context.label || "截图"}</span>
-          </div>
-        ) : (
-          <span className="text-gray-700 dark:text-gray-300 line-clamp-2">{context.label || context.content}</span>
-        )}
-      </div>
+    <div style={{
+      background: "rgba(0,122,255,0.03)",
+      border: "0.5px solid rgba(0,122,255,0.1)",
+      borderRadius: "8px",
+      padding: "6px 8px",
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "6px",
+    }}>
+      <Link size={11} strokeWidth={1.8} color="var(--accent)" style={{ flexShrink: 0, marginTop: 1 }} />
+      {isImage ? (
+        <img src={context.content} alt={context.label} style={{ maxHeight: "40px", borderRadius: "4px", objectFit: "cover" }} />
+      ) : (
+        <span style={{ flex: 1, fontSize: "9px", color: "var(--text-primary)", lineHeight: 1.4 }}>
+          {context.content}
+        </span>
+      )}
       <button
-        onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRemove(context.id); }}
-        className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors leading-none"
-        aria-label="删除上下文"
+        onClick={() => onRemove(context.id)}
+        className="flex-shrink-0 p-0.5 rounded hover:bg-black/5 transition-colors"
+        aria-label={`移除 ${context.label}`}
       >
-        ×
+        <X size={11} strokeWidth={1.8} color="var(--text-tertiary)" />
       </button>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
+import { ArrowUp, Image } from "lucide-react";
 import type { ContextRef } from "../types";
 import { ContextCard } from "./ContextCard";
 import { generateId, blobToDataUrl } from "../lib/utils";
@@ -85,11 +86,34 @@ export function ChatInput({ contexts, onAddContext, onRemoveContext, onSend, dis
         <textarea ref={textareaRef} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} disabled={disabled}
           placeholder={disabled ? "请先在设置中配置 AI 服务" : "输入问题，或选中文字后点「追问」..."}
           rows={2}
-          className="flex-1 resize-none rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-xs text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed" />
+          className="flex-1 resize-none rounded-[10px] px-3 py-2 text-xs focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            background: "rgba(0,0,0,0.03)",
+            border: "none",
+            color: "var(--text-primary)",
+          }} />
         <div className="flex flex-col gap-1.5">
-          <button onClick={handleScreenshotClick} disabled={disabled} className="p-2 rounded-md bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="添加截图" title="添加截图">📷</button>
+          <button onClick={handleScreenshotClick} disabled={disabled} className="p-1 rounded-md hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="添加截图" title="添加截图">
+            <Image size={13} strokeWidth={1.8} color="var(--text-secondary)" />
+          </button>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-          <button onClick={handleSend} disabled={disabled || (!text.trim() && contexts.length === 0)} className="p-2 rounded-md bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white transition-colors disabled:cursor-not-allowed" aria-label="发送">→</button>
+          <button onClick={handleSend} disabled={disabled || (!text.trim() && contexts.length === 0)}
+            style={{
+              width: "28px",
+              height: "28px",
+              background: (!text.trim() && contexts.length === 0) ? "var(--text-tertiary)" : "var(--accent)",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: (disabled || (!text.trim() && contexts.length === 0)) ? 0.4 : 1,
+              border: "none",
+              cursor: (disabled || (!text.trim() && contexts.length === 0)) ? "not-allowed" : "pointer",
+            }}
+            aria-label="发送"
+          >
+            <ArrowUp size={13} strokeWidth={2.5} color="white" />
+          </button>
         </div>
       </div>
       <div className="text-[10px] text-gray-400 dark:text-gray-500 text-center">Enter 发送 · Shift+Enter 换行 · Ctrl+V 粘贴截图</div>

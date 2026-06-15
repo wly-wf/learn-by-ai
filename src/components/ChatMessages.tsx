@@ -22,34 +22,59 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-3 space-y-3">
+    <div className="flex-1 overflow-y-auto px-3 py-3" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
       {messages.map((msg) => (
-        <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-          <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
-            msg.role === "user"
-              ? "bg-blue-500 text-white"
-              : msg.error
-                ? "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300"
-                : "bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600"
-          }`}>
-            <div className="font-semibold mb-0.5 text-[10px] opacity-70">{msg.role === "user" ? "🙋 你" : "🤖 AI"}</div>
-            {msg.contexts && msg.contexts.length > 0 && (
-              <div className="mb-1.5 space-y-1">
-                {msg.contexts.map((ctx) => (
-                  <div key={ctx.id} className="text-[10px] px-2 py-0.5 rounded bg-white/20 text-white/80">
-                    {ctx.type === "text" ? `📌 ${ctx.label || ctx.content.slice(0, 50)}` : "🖼️ 截图"}
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="whitespace-pre-wrap break-words">{msg.content}</div>
-            {msg.error && (
+        <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: msg.role === "user" ? "flex-end" : "flex-start" }}>
+          {msg.role === "user" ? (
+            <div style={{
+              background: "var(--message-user)",
+              color: "white",
+              fontSize: "10px",
+              padding: "7px 11px",
+              borderRadius: "12px 12px 3px 12px",
+              maxWidth: "85%",
+              lineHeight: 1.5,
+            }}>
+              {msg.contexts && msg.contexts.length > 0 && (
+                <div className="mb-1.5 space-y-1">
+                  {msg.contexts.map((ctx) => (
+                    <div key={ctx.id} className="text-[10px] px-2 py-0.5 rounded bg-white/20 text-white/80">
+                      {ctx.type === "text" ? `📌 ${ctx.label || ctx.content.slice(0, 50)}` : "🖼️ 截图"}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+            </div>
+          ) : msg.error ? (
+            <div style={{
+              background: "#FEE2E2",
+              color: "#991B1B",
+              fontSize: "10px",
+              padding: "7px 11px",
+              borderRadius: "12px 12px 12px 3px",
+              maxWidth: "92%",
+              lineHeight: 1.5,
+            }}>
+              <div className="whitespace-pre-wrap break-words">{msg.content}</div>
               <div className="mt-1.5 flex items-center gap-2">
-                <span className="text-[10px] text-red-500">{msg.error}</span>
-                <button className="text-[10px] text-red-500 underline hover:text-red-600">重试</button>
+                <span className="text-[10px]">{msg.error}</span>
+                <button className="text-[10px] underline hover:opacity-80">重试</button>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div style={{
+              background: "var(--message-ai)",
+              color: "var(--text-primary)",
+              fontSize: "10px",
+              padding: "7px 11px",
+              borderRadius: "12px 12px 12px 3px",
+              maxWidth: "92%",
+              lineHeight: 1.5,
+            }}>
+              <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+            </div>
+          )}
         </div>
       ))}
       <div ref={bottomRef} />
