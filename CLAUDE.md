@@ -2,12 +2,12 @@
 
 ## Overview
 
-AI-assisted learning Windows desktop app. Three-column layout: outline (left), document reader (center), AI chat panel (right). Supports txt/pdf/docx/md.
+AI-assisted learning Windows desktop app. VS Code-inspired layout: icon rail (left), resizable sidebar with outline, document tab bar + reader (center), AI drawer (right). Supports txt/pdf/docx/md.
 
 ## Tech Stack
 
 - **Desktop shell:** Tauri v2 (Rust backend + WebView2 frontend)
-- **Frontend:** React 18 + TypeScript 5.8 + Tailwind CSS v4
+- **Frontend:** React 19 + TypeScript 5.8 + Tailwind CSS v4
 - **Build:** Vite 7, Cargo (Rust)
 - **Key dependencies:**
   - `pdfjs-dist` 4.0.379 — PDF rendering (canvas + text layer)
@@ -15,6 +15,7 @@ AI-assisted learning Windows desktop app. Three-column layout: outline (left), d
   - `marked` 18 — Markdown → HTML
   - `DOMPurify` 3.4 — XSS sanitization
   - `idb` 8.0 — IndexedDB wrapper for local persistence
+  - `lucide-react` — Line vector icons (replaces all emoji)
 
 ## Development Commands
 
@@ -65,18 +66,61 @@ The `--exclude-all-symbols` flag tells `ld` to only export symbols explicitly li
 ```
 AppProvider (React Context)
 └── AppInner
-    ├── TopBar (document tabs, open/close files)
-    ├── OutlinePanel (left, document TOC)
-    │   └── OutlineItem (recursive, expandable tree)
-    ├── ReaderArea (center, non-PDF content)
-    │   OR
-    │   PdfReaderWrapper (center, PDF content)
-    │   └── PdfViewer (canvas-based PDF with text layer)
-    ├── AIPanel (right, chat + context cards)
-    │   ├── ChatMessages (conversation history)
-    │   └── ChatInput (textarea, context cards, send)
-    └── SettingsDialog (modal, AI provider config)
+    └── AppShell (resizable shell with slots)
+        ├── IconRail (left, 56px, view switching + settings)
+        │   ├── BookOpen → reading view
+        │   ├── ListTree → outline view
+        │   ├── Sparkles → AI drawer toggle
+        │   └── Settings (bottom) → settings modal
+        ├── Sidebar (left, resizable ~220px, outline + file actions)
+        │   └── OutlineItem (recursive, expandable tree)
+        ├── ReaderArea (center, non-PDF content)
+        │   ├── DocumentTabBar (VS Code-style tabs for switching files)
+        │   └── Content (white card, max-w-800px)
+        │   OR
+        │   PdfReaderWrapper (center, PDF content)
+        │   ├── DocumentTabBar
+        │   └── PdfViewer (canvas-based PDF with text layer)
+        ├── AIPanel (right drawer, glassmorphism, togglable)
+        │   ├── ChatMessages (iMessage-style bubbles)
+        │   └── ChatInput (pill input + circular send + screenshot)
+        └── SettingsDialog (modal, AI provider config)
 ```
+
+### Layout Structure (VS Code-inspired)
+
+```
++--IconRail | Sidebar | [Tab1][Tab2][Tab3] [+]    | AI    |
+|  (56px)  | (220px) |  Reading Content            | Drawer|
+|  📖 📋 ✨ | Outline |                             |(285px)|
+|           | Tree    |                             |       |
+|  ⚙️       |         |                             |       |
++-----------+---------+-----------------------------+-------+
+```
+
+- **IconRail** (56px fixed): Lucide line icons, active = blue background. Settings gear at bottom via `flex-1` spacer.
+- **Sidebar** (220px default, 150px min): Outline tree + Open/Import buttons. Resizable by dragging divider.
+- **DocumentTabBar**: Inside reader area. Format-colored icons (md=yellow, pdf=red, docx=blue). Active tab = blue bottom border. Hover shows X close button. + button to open files.
+- **AI Drawer** (285px default, 200px min): Glassmorphism panel, toggled via Sparkles icon or auto-opens when text is sent to AI. Close via X button in header or Sparkles icon.
+
+### Design Tokens (src/index.css)
+
+All colors use CSS variables. DO NOT hardcode hex values in components.
+
+| Variable | Value | Usage |
+|---|---|---|
+| `--bg-app` | `#EDEDF0` | Window background |
+| `--bg-sidebar` | `rgba(250,250,246,0.85)` | Icon rail, sidebar, AI drawer |
+| `--bg-card` | `#FFFFFF` | Reading content card |
+| `--text-primary` | `#1D1D1F` | Headings, body |
+| `--text-secondary` | `#86868B` | Muted labels |
+| `--text-tertiary` | `#AEAEB2` | Placeholders |
+| `--accent` | `#007AFF` | Active states, primary buttons |
+| `--accent-subtle` | `rgba(0,122,255,0.08)` | Active background |
+| `--border-subtle` | `rgba(0,0,0,0.06)` | Dividers (0.5px) |
+| `--message-user` | `#007AFF` | User chat bubble |
+| `--message-ai` | `#E9E9EF` | AI chat bubble |
+| `--toolbar-bg` | `rgba(30,30,32,0.94)` | Floating selection toolbar |
 
 ### Document Loading Flow
 
@@ -148,6 +192,7 @@ AppProvider (React Context)
 ```
 src/
 ├── App.tsx                    Main assembly, file handling, document cache
+├── index.css                  Design tokens (CSS variables) + Tailwind imports
 ├── context/AppContext.tsx     Global state via React Context
 ├── types/index.ts             TypeScript type definitions
 ├── lib/utils.ts               generateId, formatFileSize, file/Blob helpers
@@ -160,19 +205,20 @@ src/
 │   ├── useConversation.ts     AI conversation state
 │   └── useSettings.ts         AI provider settings
 ├── components/
-│   ├── AppShell.tsx           3-column resizable layout
-│   ├── TopBar.tsx             Document tabs + toolbar
-│   ├── OutlinePanel.tsx       Tree outline (left panel)
-│   ├── ReaderArea.tsx         Non-PDF content reader (center, HTML)
-│   ├── PdfReaderWrapper.tsx   PDF reader wrapper (center, outline sync)
+│   ├── AppShell.tsx           Resizable shell (icon rail + sidebar + reader + drawer)
+│   ├── IconRail.tsx           Left icon bar (56px, view switching + settings)
+│   ├── Sidebar.tsx            Outline tree + open/import actions
+│   ├── DocumentTabBar.tsx     VS Code-style horizontal tabs (inside reader area)
+│   ├── ReaderArea.tsx         Non-PDF content reader (white card, max-w-800px)
+│   ├── PdfReaderWrapper.tsx   PDF reader wrapper (white card + outline sync)
 │   ├── PdfViewer.tsx          PDF canvas renderer with text layer
-│   ├── FloatingToolbar.tsx    Selection toolbar (追问/笔记/解释)
-│   ├── ContextMenu.tsx        Right-click context menu
-│   ├── AIPanel.tsx            AI chat panel (right)
-│   ├── ChatMessages.tsx       Message history display
-│   ├── ChatInput.tsx          Message input + context cards + screenshot paste
-│   ├── ContextCard.tsx        Context reference card (text/image)
-│   ├── SettingsDialog.tsx     AI provider configuration modal
+│   ├── FloatingToolbar.tsx    Selection toolbar (Lucide icons + dark glass)
+│   ├── ContextMenu.tsx        Right-click context menu (dark glass)
+│   ├── AIPanel.tsx            AI drawer (glassmorphism, Lucide icons, closable)
+│   ├── ChatMessages.tsx       iMessage-style bubbles
+│   ├── ChatInput.tsx          Pill input + circular send + screenshot
+│   ├── ContextCard.tsx        Blue-accent reference card (Link icon)
+│   ├── SettingsDialog.tsx     AI provider configuration modal (Apple card)
 │   └── ErrorBoundary.tsx      React error boundary
 src-tauri/
 ├── tauri.conf.json           Tauri v2 config (windows, CSP, bundle)
@@ -184,9 +230,9 @@ src-tauri/
 │   ├── file_handler.rs        File I/O commands
 │   └── api_proxy.rs           HTTP proxy for AI API calls
 tests/
-├── components/               Component tests
-├── unit/                     Unit tests (aiClient, documentParser, storage, utils)
-├── e2e/                      End-to-end tests (Playwright)
+├── components/               AppShell, AIPanel, IconRail, ReaderArea, Sidebar
+├── unit/                     aiClient, documentParser, storage, utils
+├── e2e/                      Playwright full-flow test
 └── setup.ts                  Test environment setup
 ```
 
@@ -211,6 +257,20 @@ tests/
 9. **Reader panel routing must use `activeDoc.format`:** The reader area conditional in App.tsx MUST use `ctx.activeDocument.format` (from document metadata, synchronously available) to decide PDF vs non-PDF rendering — NOT `activeContent?.format` (from async cache). Otherwise, when the cache is temporarily empty, a PDF document falls through to ReaderArea with empty HTML → blank panel.
 
 10. **CSP:** `src-tauri/tauri.conf.json` has `frame-src blob:` for potential iframe-based PDF rendering (not currently used).
+
+11. **Resize performance:** Divider drag uses direct DOM manipulation (`ref.style.width`) during drag, only commits to React state on mouseup. Do NOT revert to per-frame setState — it causes severe lag.
+
+12. **Divider width:** Resize handles are 6px wide (`w-1.5`) with a 1px visible line. Do NOT reduce to `w-0.5` — users cannot grab 2px dividers.
+
+13. **Design tokens:** All component styles use CSS variables from `src/index.css`. Do NOT hardcode colors like `#007AFF` in components — always use `var(--accent)` etc. This ensures consistency and enables future dark mode.
+
+14. **Document switching:** Document list lives in DocumentTabBar (inside reader area), NOT in Sidebar. The Sidebar shows only the outline tree and open/import buttons. Do NOT add document list back to Sidebar.
+
+15. **Settings entry point:** Settings is ONLY in the IconRail bottom-left (gear icon). There is no settings button in the title area or anywhere else. Do NOT add a second settings button.
+
+16. **No dark mode yet:** Design tokens are set up for light mode only. Dark mode would require adding a `[data-theme="dark"]` or `.dark` class block to `index.css` with adjusted values. Out of scope for now.
+
+17. **Linter note:** `AIPanel.tsx`, `index.css`, and `Titlebar.tsx` may show as modified by linter automatically. This is expected — the linter normalizes formatting.
 
 ## Workflow Rules
 
