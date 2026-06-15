@@ -212,6 +212,10 @@ tests/
 
 10. **CSP:** `src-tauri/tauri.conf.json` has `frame-src blob:` for potential iframe-based PDF rendering (not currently used).
 
+## Workflow Rules
+
+- **Do NOT push to remote after every commit.** Only push when the user explicitly asks, or when a fix has been verified to work correctly. Pushing broken code wastes time and clutters the history. Commit locally, verify, then wait for the user to request a push.
+
 ## Git
 
 - Main branch: `master` (local), `main` (GitHub remote)

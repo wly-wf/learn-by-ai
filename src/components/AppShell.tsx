@@ -105,9 +105,11 @@ export function AppShell({
               {sidebar}
             </div>
             <div
-              className="w-0.5 cursor-col-resize flex-shrink-0 transition-colors hover:bg-[#007AFF]/30"
+              className="w-1.5 cursor-col-resize flex-shrink-0 flex items-center justify-center group"
               onMouseDown={handleSidebarMouseDown}
-            />
+            >
+              <div className="w-px h-full bg-black/[0.08] group-hover:bg-[#007AFF]/40 transition-colors" />
+            </div>
           </>
         )}
 
@@ -116,9 +118,11 @@ export function AppShell({
         {showAiDrawer && aiDrawer && (
           <>
             <div
-              className="w-0.5 cursor-col-resize flex-shrink-0 transition-colors hover:bg-[#007AFF]/30"
+              className="w-1.5 cursor-col-resize flex-shrink-0 flex items-center justify-center group"
               onMouseDown={handleAiMouseDown}
-            />
+            >
+              <div className="w-px h-full bg-black/[0.08] group-hover:bg-[#007AFF]/40 transition-colors" />
+            </div>
             <div
               ref={aiDrawerElRef}
               style={{ width: `${aiDrawerWidth}px` }}
