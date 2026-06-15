@@ -17,7 +17,7 @@ const views: Array<{ id: ViewType; icon: typeof BookOpen; label: string }> = [
 
 export function IconRail({ activeView, onViewChange, onOpenSettings, aiUnread }: IconRailProps) {
   return (
-    <div className="flex flex-col items-center gap-0.5 pt-2.5 pb-2 w-12 flex-shrink-0"
+    <div className="flex flex-col items-center gap-1 pt-3 pb-2 w-14 flex-shrink-0"
       style={{ background: "var(--bg-sidebar)", backdropFilter: "blur(20px)", borderRight: "0.5px solid var(--border-subtle)" }}>
       {views.map(({ id, icon: Icon, label }) => {
         const isActive = activeView === id;
@@ -27,13 +27,13 @@ export function IconRail({ activeView, onViewChange, onOpenSettings, aiUnread }:
             onClick={() => onViewChange(id)}
             aria-label={label}
             title={label}
-            className="relative w-[30px] h-[30px] rounded-[7px] flex items-center justify-center transition-colors"
+            className="relative w-[36px] h-[36px] rounded-[7px] flex items-center justify-center transition-colors"
             style={{
               background: isActive ? "var(--accent)" : "transparent",
               color: isActive ? "white" : "var(--text-secondary)",
             }}
           >
-            <Icon size={16} strokeWidth={1.8} />
+            <Icon size={18} strokeWidth={1.8} />
             {id === "ai" && aiUnread && (
               <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#FF3B30]" />
             )}
@@ -49,10 +49,10 @@ export function IconRail({ activeView, onViewChange, onOpenSettings, aiUnread }:
         onClick={onOpenSettings}
         aria-label="设置"
         title="设置"
-        className="w-[30px] h-[30px] rounded-[7px] flex items-center justify-center transition-colors hover:bg-black/5"
+        className="w-[36px] h-[36px] rounded-[7px] flex items-center justify-center transition-colors hover:bg-black/5"
         style={{ color: "var(--text-tertiary)" }}
       >
-        <Settings size={16} strokeWidth={1.8} />
+        <Settings size={18} strokeWidth={1.8} />
       </button>
     </div>
   );

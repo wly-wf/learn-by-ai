@@ -33,7 +33,7 @@ function AppInner() {
   const [activeView, setActiveView] = useState<ViewType>("reading");
   const [showSidebar, setShowSidebar] = useState(true);
   const [showAiDrawer, setShowAiDrawer] = useState(true);
-  const [sidebarWidth, setSidebarWidth] = useState(195);
+  const [sidebarWidth, setSidebarWidth] = useState(220);
   const [aiDrawerWidth, setAiDrawerWidth] = useState(285);
 
   const activeContent = ctx.activeDocumentId
