@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 
 interface SettingsDialogProps {
@@ -29,11 +30,20 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-[500px] max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">⚙️ 设置</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(4px)" }}>
+      <div className="rounded-xl shadow-2xl w-[500px] max-h-[80vh] overflow-y-auto"
+        style={{
+          background: "var(--bg-card)",
+          borderRadius: "16px",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(0,0,0,0.06)",
+        }}>
+        <div className="flex items-center justify-between p-4 border-b"
+          style={{ borderColor: "var(--border-subtle)" }}>
+          <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>⚙️ 设置</h3>
+          <button onClick={onClose} className="hover:opacity-70 transition-opacity">
+            <X size={16} strokeWidth={1.8} color="var(--text-secondary)" />
+          </button>
         </div>
 
         <div className="p-4 space-y-4">
@@ -50,7 +60,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <div className="space-y-2">
                 {settings.providers.map((p) => (
                   <div key={p.id}
-                    className={`flex items-center justify-between p-2 rounded-md border cursor-pointer transition-colors ${settings.activeProviderId === p.id ? "border-blue-400 bg-blue-50 dark:bg-blue-900/30" : "border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+                    className="flex items-center justify-between p-2 rounded-md border cursor-pointer transition-colors"
+                    style={{
+                      borderColor: settings.activeProviderId === p.id ? "var(--accent)" : "var(--border-subtle)",
+                      background: settings.activeProviderId === p.id ? "var(--accent-subtle)" : "transparent",
+                    }}
                     onClick={() => setActiveProvider(p.id)}>
                     <div>
                       <div className="text-xs font-medium text-gray-700 dark:text-gray-300">{p.name}</div>
@@ -68,10 +82,34 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             {/* 添加表单 */}
             {showForm && (
               <div className="mt-3 p-3 border border-gray-200 dark:border-gray-600 rounded-md space-y-2.5">
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="显示名称（如 Claude）" className="w-full text-xs px-2.5 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <input type="text" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="Base URL（如 https://api.anthropic.com/v1）" className="w-full text-xs px-2.5 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="API Key" className="w-full text-xs px-2.5 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <input type="text" value={model} onChange={(e) => setModel(e.target.value)} placeholder="模型名称（如 claude-sonnet-4-6）" className="w-full text-xs px-2.5 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="显示名称（如 Claude）" className="w-full text-xs px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{
+                    background: "rgba(0,0,0,0.02)",
+                    border: "0.5px solid var(--border-subtle)",
+                    borderRadius: "8px",
+                    color: "var(--text-primary)",
+                  }} />
+                <input type="text" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="Base URL（如 https://api.anthropic.com/v1）" className="w-full text-xs px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{
+                    background: "rgba(0,0,0,0.02)",
+                    border: "0.5px solid var(--border-subtle)",
+                    borderRadius: "8px",
+                    color: "var(--text-primary)",
+                  }} />
+                <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="API Key" className="w-full text-xs px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{
+                    background: "rgba(0,0,0,0.02)",
+                    border: "0.5px solid var(--border-subtle)",
+                    borderRadius: "8px",
+                    color: "var(--text-primary)",
+                  }} />
+                <input type="text" value={model} onChange={(e) => setModel(e.target.value)} placeholder="模型名称（如 claude-sonnet-4-6）" className="w-full text-xs px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{
+                    background: "rgba(0,0,0,0.02)",
+                    border: "0.5px solid var(--border-subtle)",
+                    borderRadius: "8px",
+                    color: "var(--text-primary)",
+                  }} />
                 <div className="flex gap-2">
                   <button onClick={handleAddProvider} className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">保存</button>
                   <button onClick={() => setShowForm(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors">取消</button>
@@ -85,7 +123,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 <div className="text-[10px] text-gray-400 mb-1.5">快速预设：</div>
                 <div className="flex flex-wrap gap-1.5">
                   {commonPresets.map((preset) => (
-                    <button key={preset.name} onClick={() => { setName(preset.name); setBaseUrl(preset.baseUrl); setModel(preset.model); setShowForm(true); }} className="text-[10px] px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    <button key={preset.name} onClick={() => { setName(preset.name); setBaseUrl(preset.baseUrl); setModel(preset.model); setShowForm(true); }} className="text-[10px] px-2 py-1 transition-colors"
+                      style={{
+                        background: "rgba(0,0,0,0.04)",
+                        borderRadius: "7px",
+                        color: "var(--text-secondary)",
+                      }}>
                       {preset.name}
                     </button>
                   ))}
@@ -99,7 +142,13 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">阅读设置</h4>
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-600 dark:text-gray-400">字号</span>
-              <select value={settings.fontSize} onChange={(e) => setSettings({ ...settings, fontSize: Number(e.target.value) })} className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select value={settings.fontSize} onChange={(e) => setSettings({ ...settings, fontSize: Number(e.target.value) })} className="text-xs px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  border: "0.5px solid var(--border-subtle)",
+                  borderRadius: "6px",
+                  background: "rgba(0,0,0,0.02)",
+                  color: "var(--text-primary)",
+                }}>
                 {[12, 14, 16, 18, 20, 24].map((size) => (<option key={size} value={size}>{size}px</option>))}
               </select>
             </div>
