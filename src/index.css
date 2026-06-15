@@ -1,2 +1,27 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+/* Apple Design Tokens */
+:root {
+  --bg-app: #EDEDF0;
+  --bg-sidebar: rgba(250, 250, 246, 0.85);
+  --bg-card: #FFFFFF;
+  --text-primary: #1D1D1F;
+  --text-secondary: #86868B;
+  --text-tertiary: #AEAEB2;
+  --accent: #007AFF;
+  --accent-subtle: rgba(0, 122, 255, 0.08);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --message-user: #007AFF;
+  --message-ai: #E9E9EF;
+  --toolbar-bg: rgba(30, 30, 32, 0.94);
+  --font-system: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  font-family: var(--font-system);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
