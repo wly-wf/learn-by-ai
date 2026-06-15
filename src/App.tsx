@@ -197,7 +197,7 @@ function AppInner() {
           />
         }
         iconRail={
-          <IconRail activeView={activeView} onViewChange={handleViewChange} />
+          <IconRail activeView={activeView} onViewChange={handleViewChange} onOpenSettings={() => setSettingsOpen(true)} />
         }
         sidebar={
           <Sidebar
