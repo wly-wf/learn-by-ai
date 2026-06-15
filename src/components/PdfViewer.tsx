@@ -253,8 +253,9 @@ export function PdfViewer({ data }: PdfViewerProps) {
         <div className="flex items-center justify-center py-12 text-gray-400 text-sm">正在加载 PDF...</div>
       )}
       {!loading && pages.map(({ pageNum, canvasRef, textLayerRef, cssWidth, cssHeight }) => (
-        <div key={pageNum} id={`pdf-page-${pageNum}`} className="pdf-page shadow-md bg-white mx-auto" style={{ width: `${cssWidth}px`, maxWidth: "100%" }}>
-          <div className="text-xs text-gray-400 text-center py-1 bg-gray-50 border-b">第 {pageNum} 页</div>
+        <div key={pageNum} id={`pdf-page-${pageNum}`} className="pdf-page bg-white mx-auto" style={{ width: `${cssWidth}px`, maxWidth: "100%", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+          <div className="text-[10px] text-center py-1 border-b"
+            style={{ color: "var(--text-secondary)", background: "#FAFAFA", borderColor: "var(--border-subtle)" }}>第 {pageNum} 页</div>
           <div className="relative" style={{ width: `${cssWidth}px`, height: `${cssHeight}px`, maxWidth: "100%" }}>
             <canvas
               ref={canvasRef}

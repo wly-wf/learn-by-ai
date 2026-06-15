@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { MessageSquare, Globe, FileText } from "lucide-react";
 
 interface ContextMenuProps {
   visible: boolean;
@@ -8,6 +9,17 @@ interface ContextMenuProps {
   onTranslate: () => void;
   onSummarize: () => void;
 }
+
+const menuItemStyle = {
+  color: "rgba(255,255,255,0.8)",
+  fontSize: "10px",
+  padding: "4px 8px",
+  borderRadius: "5px",
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  width: "100%",
+};
 
 export function ContextMenu({ visible, position, onClose, onAskAI, onTranslate, onSummarize }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -24,10 +36,44 @@ export function ContextMenu({ visible, position, onClose, onAskAI, onTranslate, 
   if (!visible) return null;
 
   return (
-    <div ref={ref} className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px]" style={{ left: `${position.x}px`, top: `${position.y}px` }}>
-      <button onClick={() => { onAskAI(); onClose(); }} className="w-full text-left px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">🤖 AI 提问</button>
-      <button onClick={() => { onTranslate(); onClose(); }} className="w-full text-left px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">🌐 AI 翻译</button>
-      <button onClick={() => { onSummarize(); onClose(); }} className="w-full text-left px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">📋 AI 总结</button>
+    <div
+      ref={ref}
+      className="absolute"
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        background: "rgba(30, 30, 32, 0.94)",
+        backdropFilter: "blur(24px)",
+        borderRadius: "9px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(255,255,255,0.08)",
+        padding: "4px",
+        zIndex: 50,
+      }}
+    >
+      <button
+        onClick={() => { onAskAI(); onClose(); }}
+        style={menuItemStyle}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
+      >
+        <MessageSquare size={11} strokeWidth={1.8} /> 追问
+      </button>
+      <button
+        onClick={() => { onTranslate(); onClose(); }}
+        style={menuItemStyle}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
+      >
+        <Globe size={11} strokeWidth={1.8} /> 翻译
+      </button>
+      <button
+        onClick={() => { onSummarize(); onClose(); }}
+        style={menuItemStyle}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
+      >
+        <FileText size={11} strokeWidth={1.8} /> 总结
+      </button>
     </div>
   );
 }

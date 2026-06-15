@@ -76,8 +76,17 @@ export function PdfReaderWrapper({ data, outline, onActiveHeadingChange }: PdfRe
   }, [outline, onActiveHeadingChange]);
 
   return (
-    <div ref={containerRef} className="h-full overflow-y-auto px-3 py-4">
-      <PdfViewer data={data} />
+    <div ref={containerRef} className="h-full overflow-y-auto py-4 px-6">
+      <div style={{
+        background: "var(--bg-card)",
+        borderRadius: "12px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.04)",
+        padding: "16px",
+        maxWidth: "800px",
+        margin: "0 auto",
+      }}>
+        <PdfViewer data={data} />
+      </div>
     </div>
   );
 }

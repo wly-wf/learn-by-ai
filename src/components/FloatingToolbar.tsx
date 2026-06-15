@@ -1,3 +1,5 @@
+import { MessageSquare, MapPin, FileText } from "lucide-react";
+
 interface FloatingToolbarProps {
   visible: boolean;
   position: { x: number; y: number };
@@ -9,19 +11,30 @@ interface FloatingToolbarProps {
 export function FloatingToolbar({ visible, position, onAskAI, onTakeNote, onExplain }: FloatingToolbarProps) {
   if (!visible) return null;
 
+  const btnClass = "flex items-center gap-1.5 text-[9px] px-2 py-1 rounded-[6px] transition-colors";
+
   return (
     <div
-      className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg flex gap-0.5 p-1"
-      style={{ left: `${position.x}px`, top: `${position.y - 44}px` }}
+      className="absolute z-40 flex items-center gap-0.5 px-1.5 py-1 rounded-[9px]"
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y - 40}px`,
+        background: "rgba(30, 30, 32, 0.94)",
+        backdropFilter: "blur(24px)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(255,255,255,0.08)",
+      }}
     >
-      <button onClick={onAskAI} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded transition-colors">
-        💬 追问
+      <button onClick={onAskAI} className={btnClass}
+        style={{ color: "white", background: "rgba(255,255,255,0.15)" }}>
+        <MessageSquare size={11} strokeWidth={1.8} /> 追问
       </button>
-      <button onClick={onTakeNote} className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
-        📝 笔记
+      <button onClick={onExplain} className={btnClass}
+        style={{ color: "rgba(255,255,255,0.65)" }}>
+        <MapPin size={11} strokeWidth={1.8} /> 解释
       </button>
-      <button onClick={onExplain} className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
-        🔍 解释
+      <button onClick={onTakeNote} className={btnClass}
+        style={{ color: "rgba(255,255,255,0.65)" }}>
+        <FileText size={11} strokeWidth={1.8} /> 笔记
       </button>
     </div>
   );
