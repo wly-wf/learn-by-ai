@@ -27,23 +27,32 @@ export function AppShell({
   onSidebarWidthChange,
   onAiDrawerWidthChange,
 }: AppShellProps) {
-  const sidebarResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
-  const aiResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  // Refs for direct DOM manipulation during drag (avoids React re-renders on every mousemove)
+  const sidebarElRef = useRef<HTMLDivElement>(null);
+  const aiDrawerElRef = useRef<HTMLDivElement>(null);
 
   const handleSidebarMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      sidebarResizeRef.current = { startX: e.clientX, startWidth: sidebarWidth };
+      const startX = e.clientX;
+      const startWidth = sidebarElRef.current?.offsetWidth ?? sidebarWidth;
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
 
       const onMove = (ev: MouseEvent) => {
-        if (!sidebarResizeRef.current) return;
-        const delta = ev.clientX - sidebarResizeRef.current.startX;
-        onSidebarWidthChange?.(Math.max(150, sidebarResizeRef.current.startWidth + delta));
+        const newWidth = Math.max(150, startWidth + (ev.clientX - startX));
+        if (sidebarElRef.current) {
+          sidebarElRef.current.style.width = `${newWidth}px`;
+        }
       };
       const onUp = () => {
-        sidebarResizeRef.current = null;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
+        // Commit final width to React state only on mouseup
+        const finalWidth = sidebarElRef.current?.offsetWidth;
+        if (finalWidth) onSidebarWidthChange?.(finalWidth);
       };
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
@@ -54,17 +63,24 @@ export function AppShell({
   const handleAiMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      aiResizeRef.current = { startX: e.clientX, startWidth: aiDrawerWidth };
+      const startX = e.clientX;
+      const startWidth = aiDrawerElRef.current?.offsetWidth ?? aiDrawerWidth;
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
 
       const onMove = (ev: MouseEvent) => {
-        if (!aiResizeRef.current) return;
-        const delta = aiResizeRef.current.startX - ev.clientX;
-        onAiDrawerWidthChange?.(Math.max(200, aiResizeRef.current.startWidth + delta));
+        const newWidth = Math.max(200, startWidth + (startX - ev.clientX));
+        if (aiDrawerElRef.current) {
+          aiDrawerElRef.current.style.width = `${newWidth}px`;
+        }
       };
       const onUp = () => {
-        aiResizeRef.current = null;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
+        const finalWidth = aiDrawerElRef.current?.offsetWidth;
+        if (finalWidth) onAiDrawerWidthChange?.(finalWidth);
       };
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
@@ -81,7 +97,11 @@ export function AppShell({
 
         {showSidebar && sidebar && (
           <>
-            <div style={{ width: `${sidebarWidth}px` }} className="flex-shrink-0 overflow-hidden">
+            <div
+              ref={sidebarElRef}
+              style={{ width: `${sidebarWidth}px` }}
+              className="flex-shrink-0 overflow-hidden"
+            >
               {sidebar}
             </div>
             <div
@@ -99,7 +119,11 @@ export function AppShell({
               className="w-0.5 cursor-col-resize flex-shrink-0 transition-colors hover:bg-[#007AFF]/30"
               onMouseDown={handleAiMouseDown}
             />
-            <div style={{ width: `${aiDrawerWidth}px` }} className="flex-shrink-0 overflow-hidden">
+            <div
+              ref={aiDrawerElRef}
+              style={{ width: `${aiDrawerWidth}px` }}
+              className="flex-shrink-0 overflow-hidden"
+            >
               {aiDrawer}
             </div>
           </>
