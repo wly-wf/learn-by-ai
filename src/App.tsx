@@ -184,7 +184,6 @@ function AppInner() {
             fileName={activeDoc?.fileName}
             format={activeDoc?.format}
             isSaved={!!activeDoc}
-            onOpenSettings={() => setSettingsOpen(true)}
           />
         }
         tabBar={

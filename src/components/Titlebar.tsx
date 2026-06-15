@@ -1,4 +1,4 @@
-import { Settings, FileText, FileType, FileType2 } from "lucide-react";
+import { FileText, FileType, FileType2 } from "lucide-react";
 import type { DocumentFormat } from "../types";
 
 interface TitlebarProps {
@@ -6,7 +6,6 @@ interface TitlebarProps {
   format?: DocumentFormat;
   pageInfo?: string;
   isSaved?: boolean;
-  onOpenSettings: () => void;
 }
 
 const formatIcons: Record<string, typeof FileText> = {
@@ -23,7 +22,7 @@ const formatColors: Record<string, string> = {
   docx: "#3B82F6",
 };
 
-export function Titlebar({ fileName, format, pageInfo, isSaved, onOpenSettings }: TitlebarProps) {
+export function Titlebar({ fileName, format, pageInfo, isSaved }: TitlebarProps) {
   const FormatIcon = format && formatIcons[format] ? formatIcons[format] : FileText;
   const iconColor = format ? formatColors[format] || "#86868B" : "#86868B";
 
@@ -67,15 +66,6 @@ export function Titlebar({ fileName, format, pageInfo, isSaved, onOpenSettings }
           {pageInfo}
         </span>
       )}
-
-      <button
-        onClick={onOpenSettings}
-        aria-label="设置"
-        title="设置"
-        className="p-1 rounded-md hover:bg-black/5 transition-colors"
-      >
-        <Settings size={14} strokeWidth={1.8} color="var(--text-secondary)" />
-      </button>
     </div>
   );
 }
