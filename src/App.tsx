@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { AppShell } from "./components/AppShell";
-import { TopBar } from "./components/TopBar";
-import { OutlinePanel } from "./components/OutlinePanel";
+import { IconRail, type ViewType } from "./components/IconRail";
+import { Titlebar } from "./components/Titlebar";
+import { Sidebar } from "./components/Sidebar";
 import { ReaderArea } from "./components/ReaderArea";
 import { AIPanel } from "./components/AIPanel";
 import { SettingsDialog } from "./components/SettingsDialog";
@@ -21,16 +22,20 @@ interface DocContent {
 
 function AppInner() {
   const ctx = useAppContext();
-  // Use ref to avoid recreating callbacks that depend on ctx on every render
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
 
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // Document content cache keyed by document ID
   const [docContents, setDocContents] = useState<Map<string, DocContent>>(new Map());
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
 
-  // Get active document's content from cache
+  // Layout state
+  const [activeView, setActiveView] = useState<ViewType>("reading");
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [showAiDrawer, setShowAiDrawer] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(195);
+  const [aiDrawerWidth, setAiDrawerWidth] = useState(285);
+
   const activeContent = ctx.activeDocumentId
     ? docContents.get(ctx.activeDocumentId)
     : undefined;
@@ -39,18 +44,13 @@ function AppInner() {
 
   const loadDocumentContent = useCallback(async (_docId: string, content: ArrayBuffer, format: string) => {
     try {
-      // Clone buffer for safe storage — parseDocument/pdf.js may transfer the original
       const contentClone = content.slice(0);
       const result = await parseDocument(content, format as any);
-      // Use PDF built-in outline if available, otherwise extract from HTML/Markdown
       const newOutline = result.pdfOutline
         ?? extractOutline(format === "md" ? result.rawText : result.html, format as any);
 
-      // Store in cache
       const docContent: DocContent = {
-        html: result.html,
-        outline: newOutline,
-        format,
+        html: result.html, outline: newOutline, format,
         pdfBuffer: format === "pdf" ? contentClone : undefined,
       };
 
@@ -69,23 +69,18 @@ function AppInner() {
     }
   }, []);
 
-  // Clean up closed documents from cache
   useEffect(() => {
     setDocContents((prev) => {
       const docIds = new Set(ctx.documents.map((d) => d.id));
       const next = new Map(prev);
       let changed = false;
       for (const key of next.keys()) {
-        if (!docIds.has(key)) {
-          next.delete(key);
-          changed = true;
-        }
+        if (!docIds.has(key)) { next.delete(key); changed = true; }
       }
       return changed ? next : prev;
     });
   }, [ctx.documents]);
 
-  // Reset heading when switching documents
   useEffect(() => {
     setActiveHeadingId(null);
   }, [ctx.activeDocumentId]);
@@ -111,7 +106,6 @@ function AppInner() {
             await loadDocumentContent(doc.id, buffer, doc.format);
           }
         } catch {
-          // Fallback: use browser file input
           const input = document.createElement("input");
           input.type = "file";
           input.accept = ".txt,.pdf,.docx,.doc,.md,.markdown";
@@ -127,7 +121,6 @@ function AppInner() {
         }
       }
     } catch {
-      // Fallback: use browser file input
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".txt,.pdf,.docx,.doc,.md,.markdown";
@@ -157,45 +150,68 @@ function AppInner() {
     } catch { /* folder import requires Tauri */ }
   }, [ctx]);
 
-  // Stable callback — never changes reference, reads latest ctx from ref
   const handleAskAI = useCallback((selectedText: string) => {
     window.dispatchEvent(new CustomEvent("add-context", {
       detail: { id: generateId(), type: "text", content: selectedText, label: selectedText.length > 50 ? selectedText.slice(0, 50) + "..." : selectedText },
     }));
+    setShowAiDrawer(true);
+    setActiveView("ai");
   }, []);
 
-  // Stable callback — use ctxRef to avoid new reference every render
   const handleScrollChange = useCallback((pct: number) => {
     const c = ctxRef.current;
     if (c.activeDocumentId) c.updateScrollPosition(c.activeDocumentId, pct);
   }, []);
 
+  const handleViewChange = useCallback((view: ViewType) => {
+    setActiveView(view);
+    if (view === "outline") setShowSidebar(true);
+    if (view === "ai") setShowAiDrawer(true);
+  }, []);
+
   return (
     <>
       <AppShell
-        topBar={
-          <TopBar
-            documents={ctx.documents} activeDocumentId={ctx.activeDocumentId}
-            onSelectDocument={ctx.setActiveDocumentId} onCloseDocument={ctx.closeDocument}
-            onOpenFile={handleOpenFile} onImportFolder={handleImportFolder}
+        showSidebar={showSidebar}
+        showAiDrawer={showAiDrawer}
+        sidebarWidth={sidebarWidth}
+        aiDrawerWidth={aiDrawerWidth}
+        onSidebarWidthChange={setSidebarWidth}
+        onAiDrawerWidthChange={setAiDrawerWidth}
+        titlebar={
+          <Titlebar
+            fileName={activeDoc?.fileName}
+            format={activeDoc?.format}
+            isSaved={!!activeDoc}
             onOpenSettings={() => setSettingsOpen(true)}
           />
         }
-        outlinePanel={
-          <OutlinePanel outline={activeContent?.outline || []} activeHeadingId={activeHeadingId}
+        iconRail={
+          <IconRail activeView={activeView} onViewChange={handleViewChange} />
+        }
+        sidebar={
+          <Sidebar
+            documents={ctx.documents}
+            activeDocumentId={ctx.activeDocumentId}
+            onSelectDocument={ctx.setActiveDocumentId}
+            onCloseDocument={ctx.closeDocument}
+            outline={activeContent?.outline || []}
+            activeHeadingId={activeHeadingId}
             onNavigate={(anchorId) => {
               const el = document.querySelector(`[id="${anchorId}"]`) || document.getElementById(anchorId);
               if (el) el.scrollIntoView({ behavior: "smooth" });
               setActiveHeadingId(anchorId);
             }}
+            onOpenFile={handleOpenFile}
+            onImportFolder={handleImportFolder}
           />
         }
         readerArea={
           !activeDoc ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
-              <span className="text-4xl mb-3">📖</span>
-              <span className="text-sm">打开一个文档开始阅读</span>
-              <span className="text-xs mt-1">支持 PDF、Word、Markdown、TXT</span>
+            <div className="flex flex-col items-center justify-center h-full" style={{ color: "var(--text-secondary)" }}>
+              <span className="text-3xl mb-3 opacity-60">📖</span>
+              <span className="text-[11px]">打开一个文档开始阅读</span>
+              <span className="text-[10px] mt-1 opacity-60">支持 PDF、Word、Markdown、TXT</span>
             </div>
           ) : activeDoc.format === "pdf" ? (
             activeContent?.pdfBuffer ? (
@@ -206,7 +222,7 @@ function AppInner() {
                 onActiveHeadingChange={setActiveHeadingId}
               />
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-400 text-sm">正在解析 PDF...</div>
+              <div className="flex items-center justify-center h-full text-sm" style={{ color: "var(--text-secondary)" }}>正在解析 PDF...</div>
             )
           ) : (
             <ReaderArea document={activeDoc} htmlContent={activeContent?.html || ""}
@@ -220,12 +236,13 @@ function AppInner() {
             />
           )
         }
-        aiPanel={
+        aiDrawer={showAiDrawer ? (
           <AIPanel conversation={ctx.conversation} hasApiKey={ctx.hasApiKey}
             onSendMessage={async (content, contexts, _convId) => { await ctx.sendMessage(content, contexts); }}
             onNewConversation={ctx.newConversation}
+            onClose={() => setShowAiDrawer(false)}
           />
-        }
+        ) : null}
       />
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
