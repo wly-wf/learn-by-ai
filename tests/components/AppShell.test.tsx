@@ -3,33 +3,77 @@ import { render, screen } from "@testing-library/react";
 import { AppShell } from "../../src/components/AppShell";
 
 describe("AppShell", () => {
-  it("should render three panels", () => {
+  it("renders all layout slots when sidebar and drawer are visible", () => {
     render(
       <AppShell
-        outlinePanel={<div>Outline</div>}
-        readerArea={<div>Reader</div>}
-        aiPanel={<div>AI</div>}
-        topBar={<div>Top</div>}
-      />,
+        titlebar={<div data-testid="titlebar">titlebar</div>}
+        iconRail={<div data-testid="icon-rail">rail</div>}
+        sidebar={<div data-testid="sidebar">sidebar</div>}
+        readerArea={<div data-testid="reader">reader</div>}
+        aiDrawer={<div data-testid="ai">ai</div>}
+        showSidebar={true}
+        showAiDrawer={true}
+        sidebarWidth={195}
+        aiDrawerWidth={285}
+      />
     );
-
-    expect(screen.getByText("Outline")).toBeInTheDocument();
-    expect(screen.getByText("Reader")).toBeInTheDocument();
-    expect(screen.getByText("AI")).toBeInTheDocument();
-    expect(screen.getByText("Top")).toBeInTheDocument();
+    expect(screen.getByTestId("titlebar")).toBeDefined();
+    expect(screen.getByTestId("icon-rail")).toBeDefined();
+    expect(screen.getByTestId("sidebar")).toBeDefined();
+    expect(screen.getByTestId("reader")).toBeDefined();
+    expect(screen.getByTestId("ai")).toBeDefined();
   });
 
-  it("should apply default column ratio classes", () => {
-    const { container } = render(
+  it("hides sidebar when showSidebar is false", () => {
+    render(
       <AppShell
-        outlinePanel={<div>O</div>}
-        readerArea={<div>R</div>}
-        aiPanel={<div>A</div>}
-        topBar={<div>T</div>}
-      />,
+        titlebar={<div>t</div>}
+        iconRail={<div>r</div>}
+        sidebar={<div data-testid="sidebar">s</div>}
+        readerArea={<div>rd</div>}
+        aiDrawer={null}
+        showSidebar={false}
+        showAiDrawer={false}
+        sidebarWidth={195}
+        aiDrawerWidth={285}
+      />
     );
+    expect(screen.queryByTestId("sidebar")).toBeNull();
+  });
 
-    const panels = container.querySelectorAll("[data-panel]");
-    expect(panels.length).toBeGreaterThanOrEqual(3);
+  it("hides AI drawer when showAiDrawer is false", () => {
+    render(
+      <AppShell
+        titlebar={<div>t</div>}
+        iconRail={<div>r</div>}
+        sidebar={<div>s</div>}
+        readerArea={<div data-testid="reader">rd</div>}
+        aiDrawer={<div data-testid="ai">ai</div>}
+        showSidebar={true}
+        showAiDrawer={false}
+        sidebarWidth={195}
+        aiDrawerWidth={285}
+      />
+    );
+    expect(screen.queryByTestId("ai")).toBeNull();
+  });
+
+  it("renders only icon rail and reader as visible", () => {
+    render(
+      <AppShell
+        titlebar={<div data-testid="titlebar">t</div>}
+        iconRail={<div data-testid="icon-rail">r</div>}
+        sidebar={null}
+        readerArea={<div data-testid="reader">rd</div>}
+        aiDrawer={null}
+        showSidebar={false}
+        showAiDrawer={false}
+        sidebarWidth={195}
+        aiDrawerWidth={285}
+      />
+    );
+    expect(screen.getByTestId("titlebar")).toBeDefined();
+    expect(screen.getByTestId("icon-rail")).toBeDefined();
+    expect(screen.getByTestId("reader")).toBeDefined();
   });
 });

@@ -1,108 +1,109 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef } from "react";
 
 interface AppShellProps {
-  topBar: React.ReactNode;
-  outlinePanel: React.ReactNode;
+  titlebar: React.ReactNode;
+  iconRail: React.ReactNode;
+  sidebar: React.ReactNode;
   readerArea: React.ReactNode;
-  aiPanel: React.ReactNode;
+  aiDrawer: React.ReactNode;
+  showSidebar: boolean;
+  showAiDrawer: boolean;
+  sidebarWidth: number;
+  aiDrawerWidth: number;
+  onSidebarWidthChange?: (w: number) => void;
+  onAiDrawerWidthChange?: (w: number) => void;
 }
 
-const DEFAULT_LEFT = 16.67;
-const DEFAULT_CENTER = 50;
-const DEFAULT_RIGHT = 33.33;
-const MIN_PANEL_PCT = 10;
-
 export function AppShell({
-  topBar,
-  outlinePanel,
+  titlebar,
+  iconRail,
+  sidebar,
   readerArea,
-  aiPanel,
+  aiDrawer,
+  showSidebar,
+  showAiDrawer,
+  sidebarWidth,
+  aiDrawerWidth,
+  onSidebarWidthChange,
+  onAiDrawerWidthChange,
 }: AppShellProps) {
-  const [leftPct, setLeftPct] = useState(DEFAULT_LEFT);
-  const [centerPct, setCenterPct] = useState(DEFAULT_CENTER);
-  const [rightPct, setRightPct] = useState(DEFAULT_RIGHT);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const sidebarResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const aiResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
-  const handleDividerMouseDown = useCallback(
-    (divider: "left-center" | "center-right") => (e: React.MouseEvent) => {
+  const handleSidebarMouseDown = useCallback(
+    (e: React.MouseEvent) => {
       e.preventDefault();
+      sidebarResizeRef.current = { startX: e.clientX, startWidth: sidebarWidth };
 
-      const handleMouseMove = (moveEvent: MouseEvent) => {
-        if (!containerRef.current) return;
-        const rect = containerRef.current.getBoundingClientRect();
-        const x = moveEvent.clientX - rect.left;
-        const pct = (x / rect.width) * 100;
-
-        if (divider === "left-center") {
-          const newLeft = Math.max(MIN_PANEL_PCT, Math.min(pct, 100 - MIN_PANEL_PCT * 2));
-          const remaining = 100 - newLeft;
-          const ratio = centerPct / (centerPct + rightPct);
-          const newCenter = Math.max(MIN_PANEL_PCT, remaining * ratio);
-          const newRight = Math.max(MIN_PANEL_PCT, remaining - newCenter);
-          setLeftPct(newLeft);
-          setCenterPct(newCenter);
-          setRightPct(newRight);
-        } else {
-          const newCenter = Math.max(MIN_PANEL_PCT, Math.min(pct - leftPct, 100 - leftPct - MIN_PANEL_PCT));
-          const newRight = Math.max(MIN_PANEL_PCT, 100 - leftPct - newCenter);
-          setCenterPct(newCenter);
-          setRightPct(newRight);
-        }
+      const onMove = (ev: MouseEvent) => {
+        if (!sidebarResizeRef.current) return;
+        const delta = ev.clientX - sidebarResizeRef.current.startX;
+        onSidebarWidthChange?.(Math.max(150, sidebarResizeRef.current.startWidth + delta));
       };
-
-      const handleMouseUp = () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
+      const onUp = () => {
+        sidebarResizeRef.current = null;
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
       };
-
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
     },
-    [leftPct, centerPct, rightPct],
+    [sidebarWidth, onSidebarWidthChange],
+  );
+
+  const handleAiMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      aiResizeRef.current = { startX: e.clientX, startWidth: aiDrawerWidth };
+
+      const onMove = (ev: MouseEvent) => {
+        if (!aiResizeRef.current) return;
+        const delta = aiResizeRef.current.startX - ev.clientX;
+        onAiDrawerWidthChange?.(Math.max(200, aiResizeRef.current.startWidth + delta));
+      };
+      const onUp = () => {
+        aiResizeRef.current = null;
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    },
+    [aiDrawerWidth, onAiDrawerWidthChange],
   );
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-gray-900">
-      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
-        {topBar}
-      </div>
+    <div className="flex flex-col h-screen" style={{ background: "var(--bg-app)" }}>
+      {titlebar}
 
-      <div ref={containerRef} className="flex flex-1 overflow-hidden">
-        <div
-          data-panel="outline"
-          style={{ width: `${leftPct}%` }}
-          className="flex-shrink-0 overflow-hidden border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
-        >
-          {outlinePanel}
-        </div>
+      <div className="flex flex-1 overflow-hidden">
+        {iconRail}
 
-        <div
-          data-divider="left-center"
-          className="w-1 cursor-col-resize bg-gray-200 dark:bg-gray-600 hover:bg-blue-400 dark:hover:bg-blue-500 transition-colors flex-shrink-0"
-          onMouseDown={handleDividerMouseDown("left-center")}
-        />
+        {showSidebar && sidebar && (
+          <>
+            <div style={{ width: `${sidebarWidth}px` }} className="flex-shrink-0 overflow-hidden">
+              {sidebar}
+            </div>
+            <div
+              className="w-0.5 cursor-col-resize flex-shrink-0 transition-colors hover:bg-[#007AFF]/30"
+              onMouseDown={handleSidebarMouseDown}
+            />
+          </>
+        )}
 
-        <div
-          data-panel="reader"
-          style={{ width: `${centerPct}%` }}
-          className="flex-shrink-0 overflow-hidden"
-        >
-          {readerArea}
-        </div>
+        <div className="flex-1 overflow-hidden">{readerArea}</div>
 
-        <div
-          data-divider="center-right"
-          className="w-1 cursor-col-resize bg-gray-200 dark:bg-gray-600 hover:bg-blue-400 dark:hover:bg-blue-500 transition-colors flex-shrink-0"
-          onMouseDown={handleDividerMouseDown("center-right")}
-        />
-
-        <div
-          data-panel="ai"
-          style={{ width: `${rightPct}%` }}
-          className="flex-shrink-0 overflow-hidden border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
-        >
-          {aiPanel}
-        </div>
+        {showAiDrawer && aiDrawer && (
+          <>
+            <div
+              className="w-0.5 cursor-col-resize flex-shrink-0 transition-colors hover:bg-[#007AFF]/30"
+              onMouseDown={handleAiMouseDown}
+            />
+            <div style={{ width: `${aiDrawerWidth}px` }} className="flex-shrink-0 overflow-hidden">
+              {aiDrawer}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
